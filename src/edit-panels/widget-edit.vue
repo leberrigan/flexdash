@@ -66,13 +66,13 @@
             </prop-edit>
 
             <!-- row for output binding -->
-            <!--v-combobox
-                label="output binding" clearable dense persistent-hint
-                :hint='output_tip'
+            <v-combobox
+                label="output binding" clearable density="compact" persistent-hint
+                :hint="output_tip || 'topic to send widget output to'"
                 :items="sd_keys"
-                :value="widget.output"
-                @input="handleEditOutput($event)">
-            </v-combobox-->
+                :model-value="widget.output"
+                @update:modelValue="handleEditOutput($event)">
+            </v-combobox>
 
           </div>
         </v-card-text>
