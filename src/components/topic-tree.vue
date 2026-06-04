@@ -6,7 +6,7 @@
   <!-- path text field -->
   <v-text-field clearable label="topic (/-separated path)"
                 :model-value="modelValue"
-                @input="$emit('update:modelValue',$event)"
+                @update:modelValue="$emit('update:modelValue', $event)"
                 append-inner-icon="mdi-file-tree"
                 @click:append-inner="show_tree=!show_tree"
                 v-bind="$attrs">
@@ -24,20 +24,24 @@
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-card-title>
-      NOT WORKING YET
-      <!--v-treeview dense activatable open-on-click 
-                  @update:active="treeSelect"
-                  :open="path" :items="tree">
-      </v-treeview-->
+      <v-list density="compact" class="flex-grow-1 overflow-y-auto">
+        <v-list-item v-for="item in flatTree" :key="item.id"
+            :style="`padding-left: ${item.depth * 16 + 8}px`"
+            @click="item.children ? toggleOpen(item.id) : treeSelect(item.id)">
+          <template #prepend v-if="item.children">
+            <v-icon size="small">{{ openIds.includes(item.id) ? 'mdi-chevron-down' : 'mdi-chevron-right' }}</v-icon>
+          </template>
+          <v-list-item-title>{{ item.name }}</v-list-item-title>
+        </v-list-item>
+      </v-list>
     </v-card>
   </v-overlay>
 </template>
 
 <style>
-.topic-tree .v-treeview--dense .v-treeview-node__root { min-height: 1.5rem !important; }
 .topic-tree .v-overlay__content { height: 95%; width: 95%; max-width: 400px; }
 .topic-tree .v-card { height: 100%; }
-.topic-tree .v-treeview { flex-grow: 1; overflow-y: scroll; }
+.topic-tree .v-list { flex-grow: 1; overflow-y: scroll; }
 </style>
 
 <script scoped>
@@ -50,25 +54,29 @@ export default {
     modelValue: { default: "" },
   },
 
-  emits: [ 'update:model_value' ],
+  emits: [ 'update:modelValue' ],
 
   inject: ['$store'],
 
   data() { return {
     show_tree: false,
     tree: [],
+    openIds: [],
   }},
 
   computed: {
-    // path is fed into v-treeview, it needs to be an array with the ids (item-keys) of each
-    // item along the path (ugh)
-    path() {
-      if (!this.modelValue) return []
-      let node = this.modelValue.split('/')
-      node.pop() // remove leaf node name
-      let path = node.map(()=>node)
-      path = path.map((p,ix)=> p.slice(0, ix+1).join('/'))
-      return path
+    flatTree() {
+      const items = []
+      const flatten = (nodes, depth) => {
+        for (const node of nodes) {
+          items.push({ ...node, depth })
+          if (node.children && this.openIds.includes(node.id)) {
+            flatten(node.children, depth + 1)
+          }
+        }
+      }
+      flatten(this.tree, 0)
+      return items
     },
   },
 
@@ -78,7 +86,13 @@ export default {
 
   methods: {
 
-    // tree to feed into v-treeview, nodes need to have a name and a children array
+    toggleOpen(id) {
+      const ix = this.openIds.indexOf(id)
+      if (ix === -1) this.openIds.push(id)
+      else this.openIds.splice(ix, 1)
+    },
+
+    // tree to feed into v-list, nodes have name, id, and optional children array
     calcTree() {
       function children(name, id, value) {
         let ret = null
@@ -96,13 +110,13 @@ export default {
         }
         return ret
       }
-      
+
       return Object.entries(this.$store.sd).sort().map(([k,v])=> children(k, null, v))
     },
 
-    treeSelect(ev) {
+    treeSelect(id) {
       this.show_tree = false
-      this.$emit('update:modelValue', ev[0])
+      this.$emit('update:modelValue', id)
     },
 
   },

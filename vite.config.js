@@ -25,7 +25,7 @@ export default defineConfig(({mode}) => { return {
   resolve: { alias: [
     // alias vuetify/lib for dev mode, without the use of new Vuetify components in external
     // modules gets an error that vuetify/lib/components/VXxx is not found
-    { find: 'vuetify/lib', replacement: path.resolve(__dirname, '/node_modules/vuetify/lib') },
+    { find: 'vuetify/lib', replacement: path.join(__dirname, 'node_modules/vuetify/lib') },
   ]},
   define: {
     // pull-in the FlexDash version from package.json

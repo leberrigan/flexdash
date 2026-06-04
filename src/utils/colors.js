@@ -7,6 +7,7 @@ const colorNotFound = '#888' // color returned when we can't parse/find the colo
 // convert a color name to hash-hex using the vuetify color palette, e.g. red -> #f44336
 // to support theme color names, pass this.$vuetify.theme.current.colors
 export function color2hhex(color, theme_colors) {
+  if (color == null || color === '') return colorNotFound
   color = color.toString().toLowerCase()
   if (color.startsWith('#')) return color
 

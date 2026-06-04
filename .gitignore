@@ -31,3 +31,5 @@ flexdash-*.tgz
 .vite*
 demo.js
 TvE.md
+
+PATCHES.md
