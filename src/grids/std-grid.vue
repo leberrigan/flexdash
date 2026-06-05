@@ -192,13 +192,11 @@ export default {
       
       if (true) {
         // scaling by tweaking the width of columns
-        let maxw = this.maxCols * (COLW+GAPW)
-        let scaleUp = p.clientWidth / maxw
-        if (scaleUp > 1.33) scaleUp = 1.33
+        // only scale down if viewport is too narrow; 1fr in minmax already fills width upward
         let minw = this.minCols * (COLW+GAPW)
         let scaleDown = p.clientWidth / minw
         if (scaleDown < 0.75) scaleDown = 0.75
-        const scale = scaleDown < 1 ? scaleDown : scaleUp > 1 ? scaleUp : 1
+        const scale = scaleDown < 1 ? scaleDown : 1
         this.scale = scale.toFixed(2)
         this.colw = COLW * scale
       } else {

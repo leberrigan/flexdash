@@ -72,8 +72,7 @@ export default {
         const g = this.$config.grids[g_id];
         for (const p_id of g?.widgets) {
           const p = this.$store.widgetByID(p_id)
-          //console.log(`Checking ${p.id} ${p.kind} ${this.widget_id} ${p.static.widgets} ${p.kind == "Panel" && p.static.widgets.includes(this.widget_id)}`)
-          if (p.kind == "Panel" && p.static.widgets.includes(this.widget_id)) {
+          if (p && p.kind == "Panel" && p.static?.widgets?.includes(this.widget_id)) {
             d.grid_id = g_id
             d.panel_id = p_id
             break outer
@@ -97,10 +96,11 @@ export default {
     })
 
     // list of available target grids for the menu as array of [id, title] pairs
-    d.grid_list = Object.values(this.$config.grids).filter(g => (
-        d.panel_id || g.id != d.grid_id
-      )).map(g => ({
-        id: g.id,    
+    // filter out popup grids (not in any tab's grid list) — they aren't valid move targets
+    d.grid_list = Object.values(this.$config.grids).filter(g =>
+        grid_tabs[g.id] && (d.panel_id || g.id != d.grid_id)
+      ).map(g => ({
+        id: g.id,
         title: g.title ? `'${g.title}'` : `#${grid_tabs[g.id].ix+1}`,
         tab: grid_tabs[g.id].title,
       }))
@@ -109,7 +109,7 @@ export default {
     d.panel_list = this.$store.gridByID(d.grid_id).widgets
       .filter(w => !w.startsWith('x'))
       .map(w_id => this.$store.widgetByID(w_id))
-      .filter(w => w.kind == "Panel")
+      .filter(w => w && w.kind == "Panel")
       .map((p, ix) => ({ id: p.id, title: p.static.title ? `'${p.static.title}'` : `#${ix+1}` }))
       .filter(p => p.id != d.panel_id)
     
