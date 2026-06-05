@@ -20,7 +20,7 @@ export default {
   cloneWidget(ix) {
     // start by adding a new widget of the same kind to the end of the grid
     let widget_ix, widget_id
-    const is_grid = this.is.startsWith('g') // vs. is panel
+    const is_grid = this.id.startsWith('g') // vs. is panel
     if (is_grid) {
         const old_w = this.$store.widgetByID(this.$store.widgetIDByIX(this.grid, ix))
         widget_ix = this.$store.addWidget(this.id, old_w.kind)
@@ -132,7 +132,7 @@ export default {
           const widget_ix = this.$store.addWidget(this.id, w.kind)
           delete w.id
           delete w.kind
-          const is_grid = this.is.startsWith('g') // vs. is panel
+          const is_grid = this.id.startsWith('g') // vs. is panel
           if (is_grid) this.$store.updateWidget(this.$store.widgetIDByIX(this.grid, widget_ix), w)
           else this.$store.updateWidget(this.$store.widgetIDByPanelIX(this.id, widget_ix), w)
         } else {

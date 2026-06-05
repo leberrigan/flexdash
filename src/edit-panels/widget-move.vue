@@ -61,7 +61,7 @@ export default {
     // first try to find widget in a grid at the top-level 
     for (const g_id in this.$config.grids) {
       const g = this.$config.grids[g_id];
-      if (g.widgets.includes(this.widget_id)) {
+      if (g.widgets?.includes(this.widget_id)) {
         d.grid_id = g_id
         break
       }
@@ -70,7 +70,7 @@ export default {
     if (!d.grid_id) {
       outer: for (const g_id in this.$config.grids) {
         const g = this.$config.grids[g_id];
-        for (const p_id of g?.widgets) {
+        for (const p_id of (g?.widgets ?? [])) {
           const p = this.$store.widgetByID(p_id)
           if (p && p.kind == "Panel" && p.static?.widgets?.includes(this.widget_id)) {
             d.grid_id = g_id

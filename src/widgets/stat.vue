@@ -77,7 +77,7 @@ the \`precision\` option. Integer values are shown as-is.
       if (v === null || v === undefined) return [ "--", "" ]
       if (typeof v !== "number") return [ v, "" ]
       if (this.iso_prefix) return this.valueUnitISO(v)
-      return [ v.toFixed(this.precision), this.unit ]
+      return [ Number.parseFloat(v.toPrecision(this.precision)).toString(), this.unit ]
     },
     // compute the color for number values
     numColor() {
@@ -110,7 +110,7 @@ the \`precision\` option. Integer values are shown as-is.
   methods: {
     valueUnitISO(v) {
       const [val, prefix] = toISO(v)
-      return [ val.toPrecision(this.precision), prefix + this.unit]
+      return [ Number.parseFloat(val.toPrecision(this.precision)).toString(), prefix + this.unit]
     },
 
   },
