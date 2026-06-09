@@ -28,7 +28,8 @@
       <template #activator="{ props }">
         <!-- Widget proper -->
         <widget-wrap :config="widget" :no_border="no_border" :editable="editable"
-                     :ref="props.ref" @edit="toggleEdit" :color="edit_active?'highlight':''">
+                     :ref="props.ref" @edit="toggleEdit" @collapse="handleCollapse"
+                     :color="edit_active?'highlight':''">
         </widget-wrap>
         <div v-if="global.editMode" class="ix">#{{ix+1}}</div>
       </template>
@@ -124,12 +125,13 @@ export default {
     prop_static: {}, // manual toggle between static and dynamic binding
     sd_keys: [], // list of keys from store.sd to show in editing combobox
     // child_props holds the description of the widget component's props
-    child_props: {}, 
+    child_props: {},
     // prop_info is child_props further massaged:
     // {name:{type, default, validator, hint, icon, dynamic},...}
     // prop types: String, Number, Boolean, Array, Object, Date //, Function, Symbol
     prop_info: {},
     output_tip: "",
+    collapsed: false, // true when widget-wrap reports it is hidden/collapsed
   }},
 
   created() {
@@ -223,6 +225,14 @@ export default {
     widgetStyle() {
       // note: if rows/cols don't exist when the widget is created the widgetStyle will not
       // recompute in Vue2
+      if (this.collapsed) {
+        return {
+          'grid-row-start': 'span 1',
+          'grid-column-start': `span ${this.widget.cols||1}`,
+          'max-height': '2.5rem',
+          'overflow': 'hidden',
+        }
+      }
       return {
         'grid-row-start': `span ${this.widget.rows||1}`,
         'grid-column-start': `span ${this.widget.cols||1}`,
@@ -267,6 +277,8 @@ export default {
       // priority, i.e. defeats the switch
       if (val) this.widget.dynamic[prop] = undefined
     },
+
+    handleCollapse(val) { this.collapsed = val },
 
     // toggle edit handles the edit event from the child component which turns editing on/off,
     // this just gets propagated up to the grid where it round-trips into the edit_active property

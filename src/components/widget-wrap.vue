@@ -11,79 +11,96 @@
           :elevation="no_border ? 0 : undefined"
           :outlined="no_border && canEdit">
 
-    <!-- Widget title & buttons shown when the child component does _not_ show the title -->
-    <v-card-text v-if="!has_title && title"
-                 class="flex-grow-0 flex-shrink-0 px-0 pt-1 pb-0 mb-n1">
-      <!-- title and edit button -->
-      <span v-if="title" class="mx-auto text-no-wrap">{{title}}</span>
-      <v-btn v-if="canEdit" density="compact" flat class="edit-btn" @click="handleEdit">
-        <v-icon icon="mdi-pencil" size="small" />
+    <!-- Collapsed bar: shown when user has toggled collapse -->
+    <div v-if="collapsed" class="d-flex align-center px-1" style="height:2rem; overflow:hidden">
+      <span class="flex-grow-1 text-truncate text-caption pl-1">{{title}}</span>
+      <v-btn density="compact" flat style="min-width:0" @click="toggleCollapsed">
+        <v-icon size="small">mdi-chevron-down</v-icon>
       </v-btn>
-    </v-card-text>
-
-    <!-- Widget edit button w/o title or when the child component shows the title itself -->
-    <!-- we need to make sure we're floating way above the widget content... -->
-    <v-btn v-else-if="canEdit && !isPanel" density="compact" flat class="edit-btn" style="z-index:5"
-           @click="handleEdit">
-      <v-icon icon="mdi-pencil" size="small" />
-    </v-btn>
-    <!-- hack to offset edit button for panel -->
-    <v-btn v-else-if="canEdit && isPanel" density="compact" flat class="edit-panel-btn" style="z-index:5"
-           @click="handleEdit">
-      <v-icon icon="mdi-pencil-box-outline" size="large" />
-    </v-btn>
-
-    <!-- Icon to show widget full-page and icon to show pop-up info -->
-    <div v-if="(can_full_page || has_pup_info) && !global.editMode" class="full-page-btn">
-        <v-btn density="compact" flat v-if="can_full_page" @click="toggleFullPage"
-               class="justify-center align-center mt-n1 px-2">
-          <!--v-icon small style="background-color:red">mdi-arrow-expand-all</v-icon-->
-          <v-icon size="small">{{full_page ? "mdi-arrow-collapse" : "mdi-arrow-expand"}}</v-icon>
-        </v-btn>
-        <v-btn density="compact" flat v-if="has_pup_info" @click="togglePupInfo"
-               class="justify-center align-center mt-n1 px-2">
-          <v-icon size="small">{{pup_info ? "mdi-information-off" : "mdi-information"}}</v-icon>
-        </v-btn>
     </div>
 
-    <!-- actual component, pass in its bindings -->
-    <component :is="widget_kind" :id="config.id" v-bind="final_bindings" ref="comp"
-               @send="sendData($event)" class="my-auto">
-    </component>
+    <!-- Normal content: not collapsed and server has not hidden this widget -->
+    <template v-else-if="bindings.visible !== false">
 
-    <!-- dialog box to view the widget magnified full-page -->
-    <v-dialog v-model="full_page" class="widget-wrap-full-page">
-      <v-card :color="color" class="u-tooltip-attach">
-        <!-- Widget title & collapse button -->
-        <v-card-text v-if="!has_title && title"
-                    class="flex-grow-0 flex-shrink-0 px-0 pt-1 pb-0 mb-n1">
-          <span v-if="title" class="mx-auto text-no-wrap">{{title}}</span>
-        </v-card-text>
-        <v-btn density="compact" flat class="full-page-btn" @click="toggleFullPage">
-          <v-icon icon="mdi-arrow-collapse" size="small" />
+      <!-- Widget title & buttons shown when the child component does _not_ show the title -->
+      <v-card-text v-if="!has_title && title"
+                   class="flex-grow-0 flex-shrink-0 px-0 pt-1 pb-0 mb-n1">
+        <!-- title and edit button -->
+        <span v-if="title" class="mx-auto text-no-wrap">{{title}}</span>
+        <v-btn v-if="canEdit" density="compact" flat class="edit-btn" @click="handleEdit">
+          <v-icon icon="mdi-pencil" size="small" />
         </v-btn>
-        <!-- actual component, pass in its bindings -->
-        <component :is="widget_kind" :id="config.id" v-bind="final_bindings" ref="comp"
-                  @send="sendData($event)" class="my-auto">
-        </component>
-      </v-card>
-    </v-dialog>
+      </v-card-text>
 
-    <!-- dialog box to view the widget's pop-up "help" information full-page -->
-    <v-dialog v-model="pup_info" width="80%" max-width="100ex">
-      <v-card v-if="pup_info" class="d-flex flex-column height100">
-        <v-card-title class="d-flex align-center width100">
-          <span>{{title || "Information"}}</span>
-          <v-spacer></v-spacer>
-          <v-btn elevation=0 flat class="pr-0" @click="pup_info=false">
-            <v-icon>mdi-close</v-icon>
+      <!-- Widget edit button w/o title or when the child component shows the title itself -->
+      <!-- we need to make sure we're floating way above the widget content... -->
+      <v-btn v-else-if="canEdit && !isPanel" density="compact" flat class="edit-btn" style="z-index:5"
+             @click="handleEdit">
+        <v-icon icon="mdi-pencil" size="small" />
+      </v-btn>
+      <!-- hack to offset edit button for panel -->
+      <v-btn v-else-if="canEdit && isPanel" density="compact" flat class="edit-panel-btn" style="z-index:5"
+             @click="handleEdit">
+        <v-icon icon="mdi-pencil-box-outline" size="large" />
+      </v-btn>
+
+      <!-- Buttons: full-page expand, pop-up info, and collapse -->
+      <div v-if="!global.editMode" class="full-page-btn">
+          <v-btn density="compact" flat v-if="can_full_page" @click="toggleFullPage"
+                 class="justify-center align-center mt-n1 px-2">
+            <v-icon size="small">{{full_page ? "mdi-arrow-collapse" : "mdi-arrow-expand"}}</v-icon>
           </v-btn>
-        </v-card-title>
-        <v-card-text class="flex-grow-1">
-          <md class="pt-1" style="width:100%">{{bindings.popup_info}}</md>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
+          <v-btn density="compact" flat v-if="has_pup_info" @click="togglePupInfo"
+                 class="justify-center align-center mt-n1 px-2">
+            <v-icon size="small">{{pup_info ? "mdi-information-off" : "mdi-information"}}</v-icon>
+          </v-btn>
+          <v-btn density="compact" flat @click="toggleCollapsed"
+                 class="justify-center align-center mt-n1 px-2" style="min-width:0">
+            <v-icon size="small">mdi-chevron-up</v-icon>
+          </v-btn>
+      </div>
+
+      <!-- actual component, pass in its bindings -->
+      <component :is="widget_kind" :id="config.id" v-bind="final_bindings" ref="comp"
+                 @send="sendData($event)" class="my-auto">
+      </component>
+
+      <!-- dialog box to view the widget magnified full-page -->
+      <v-dialog v-model="full_page" class="widget-wrap-full-page">
+        <v-card :color="color" class="u-tooltip-attach">
+          <!-- Widget title & collapse button -->
+          <v-card-text v-if="!has_title && title"
+                      class="flex-grow-0 flex-shrink-0 px-0 pt-1 pb-0 mb-n1">
+            <span v-if="title" class="mx-auto text-no-wrap">{{title}}</span>
+          </v-card-text>
+          <v-btn density="compact" flat class="full-page-btn" @click="toggleFullPage">
+            <v-icon icon="mdi-arrow-collapse" size="small" />
+          </v-btn>
+          <!-- actual component, pass in its bindings -->
+          <component :is="widget_kind" :id="config.id" v-bind="final_bindings" ref="comp"
+                    @send="sendData($event)" class="my-auto">
+          </component>
+        </v-card>
+      </v-dialog>
+
+      <!-- dialog box to view the widget's pop-up "help" information full-page -->
+      <v-dialog v-model="pup_info" width="80%" max-width="100ex">
+        <v-card v-if="pup_info" class="d-flex flex-column height100">
+          <v-card-title class="d-flex align-center width100">
+            <span>{{title || "Information"}}</span>
+            <v-spacer></v-spacer>
+            <v-btn elevation=0 flat class="pr-0" @click="pup_info=false">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </v-card-title>
+          <v-card-text class="flex-grow-1">
+            <md class="pt-1" style="width:100%">{{bindings.popup_info}}</md>
+          </v-card-text>
+        </v-card>
+      </v-dialog>
+
+    </template>
+    <!-- When bindings.visible===false: empty card; widget-edit collapses the grid slot -->
 
   </v-card>
 </template>
@@ -137,13 +154,14 @@ export default {
     config: { type: Object, required: true },
   },
 
-  emits: [ 'edit' ],
+  emits: [ 'edit', 'collapse' ],
 
   data() { return {
     watchers: [], // list of watchers used in bindings so we can remove them
     bindings: {}, // mapping of prop_name -> current_value used in v-bind to child
     full_page: false, // toggle to show widget full-page
     pup_info: false, // toggle to show pop-up info
+    collapsed: false, // user-toggled collapse state
   }},
 
   computed: {
@@ -180,6 +198,12 @@ export default {
     // child_props plus title prop, which may be "missing" due to being automatic
     child_props_plus() { return { title:{type:String}, ...this.child_props } },
 
+    // effective_hidden is true when the grid slot should be minimized:
+    // either the user collapsed the widget, or the server set visible=false
+    effective_hidden() {
+      return this.collapsed || this.bindings.visible === false
+    },
+
     // widgets can be shown full-page if they have a "full-page" property
     can_full_page() {
       const p = this.palette.widgets
@@ -207,12 +231,15 @@ export default {
   },
 
   watch: {
+    // Notify widget-edit to adjust grid slot size when hidden state changes
+    effective_hidden(val) { this.$emit('collapse', val) },
+
     // Generate bindings from store.sd[some_var] -> this.bindings
     // This is how data flows from the server data to the inner component.
     // It would be nice if we could make this.bindings computed properties but this is not
     // possible because we have to update this.watchers as a side-effect.
     config: {
-      immediate: true,    
+      immediate: true,
       deep: true,
       handler(config) { this.genBindings(config) },
     },
@@ -269,6 +296,11 @@ export default {
         })
         Object.keys(config.dynamic||{}).forEach(p => {
           if (this.is_sfc && p == 'source') return // ignore source for sfc widgets
+          // 'visible' is a meta-prop handled by widget-wrap, not passed to child
+          if (p === 'visible') {
+            this.watchers.push( this.addDynBinding(p, config.dynamic[p]) )
+            return
+          }
           if (!(p in this.child_props_plus)) return
           if (config.dynamic[p] === true && config.dyn_root) {
             this.watchers.push( this.addDynBinding(p, config.dyn_root + '/' + p) )
@@ -284,6 +316,11 @@ export default {
     // FIXME: need to have some warning show up in UI if the validation will fail 'cause otherwise
     // it's very difficult to locate such issues
     updateBindingValue(prop, val) {
+      // 'visible' is a widget-wrap meta-prop, not a child prop — handle separately
+      if (prop === 'visible') {
+        this.bindings.visible = !!val
+        return
+      }
       if (!(prop in this.child_props_plus)) {
         console.log(`Warning: updating value for ${prop}, but ${this.config.kind} has no ${prop}:`,
           JSON.stringify(this.child_props_plus))
@@ -336,6 +373,8 @@ export default {
     },
 
     handleEdit() { this.$emit('edit', 'toggle') },
+
+    toggleCollapsed() { this.collapsed = !this.collapsed },
 
     toggleFullPage() { this.full_page = !this.full_page; if (this.full_page) this.pup_info = false },
     togglePupInfo() { this.pup_info = !this.pup_info; if (this.pup_info) this.full_page = false },
