@@ -73,7 +73,8 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog :model-value="!!show_auth" @update:modelValue="v => { if (!v) authDone('failed') }">
+    <v-dialog :model-value="!!show_auth" @update:modelValue="v => { if (!v) authDone('failed') }"
+              max-width="440">
       <component v-if="show_auth" :is="show_auth" :config="auth_config" @change="authDone">
       </component>
     </v-dialog>
@@ -414,16 +415,23 @@ export default {
     authDone(ev) {
       console.log("Auth done:", ev)
       this.show_auth = null
+      const connName = this.auth_conn
+      this.auth_conn = null
+      this.auth_config = null
       if (ev == 'success') {
-        this.$config.conn[this.auth_conn].enabled = true
         this.show_dialog = false
-        if (!this.gotConfig) 
+        if (!this.gotConfig)
           window.setTimeout(()=>{ if (!this.gotConfig) this.show_dialog = true }, 5000)
+        // Restart the connection directly — the sockio-settings watcher may not fire
+        // if the connections dialog was just opened/closed during auth.
+        const c = this.connections[connName]
+        if (c?.conn) {
+          this.$config.conn[connName].enabled = true
+          c.conn.start(this.$config.conn[connName])
+        }
       } else {
         this.show_dialog = !this.gotConfig
       }
-      this.auth_conn = null
-      this.auth_config = null
     },
 
   },

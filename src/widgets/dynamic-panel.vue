@@ -73,7 +73,7 @@ const DynamicChild = {
       this.bindings = {}
       if (!config) return
       for (const k in config) {
-        if (k !== 'kind' && k !== 'dynamic' && k !== 'output' && k !== 'cols') this.bindings[k] = config[k]
+        if (k !== 'kind' && k !== 'dynamic' && k !== 'output' && k !== 'cols' && k !== 'title') this.bindings[k] = config[k]
       }
       for (const k in (config.dynamic || {})) {
         this.watchers.push(this.addDynBinding(k, config.dynamic[k]))
@@ -90,9 +90,15 @@ const DynamicChild = {
 
   render() {
     const comp = resolveComponent(this.config?.kind || 'Stat')
-    const cols = this.config?.cols || 1
+    const config = this.config || {}
+    const cols = config.cols || 1
+    const hasTitle = 'title' in config
+    const children = [
+      hasTitle && h('div', { class: 'text-caption text-center px-1 pt-1 flex-shrink-0' }, config.title),
+      h(comp, this.bindings),
+    ].filter(Boolean)
     return h('div', { style: { gridColumn: `span ${cols}`, minHeight: 0, display: 'flex', flexDirection: 'column' } },
-      [h(comp, this.bindings)]
+      children
     )
   },
 }

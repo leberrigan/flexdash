@@ -34,6 +34,7 @@ export default class SockioConnection {
   // start a connection, config is store.$config.conn.sockio
   // has: enabled, config, hostname, path, tls
   start(config) {
+    this.stop() // clean up any prior socket before creating a new one
     this.data.status = 'bad'
 
     // determine path from url
