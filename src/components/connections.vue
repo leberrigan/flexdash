@@ -397,13 +397,11 @@ export default {
       this.$config.conn[conn] = config
     },
 
-    // Callback from connection telling us that the user needs to authenticate, so we need to
-    // put up a diaglog box or something.
+    // Callback from connection telling us that the user needs to authenticate.
     doAuth(conn, how) {
-      this.show_dialog = true
       this.auth_config = how
       this.auth_conn = conn
-      this.$config.conn[conn].enabled = false // disable in case user cancels auth so it doesn't retry
+      this.$config.conn[conn].enabled = false // disable to prevent auto-retry on cancel
       if (how.strategy && auth_strategies.includes(how.strategy)) {
         this.show_auth = "auth-" + how.strategy
       } else {
@@ -419,16 +417,10 @@ export default {
       this.auth_conn = null
       this.auth_config = null
       if (ev == 'success') {
-        this.show_dialog = false
         if (!this.gotConfig)
           window.setTimeout(()=>{ if (!this.gotConfig) this.show_dialog = true }, 5000)
-        // Restart the connection directly — the sockio-settings watcher may not fire
-        // if the connections dialog was just opened/closed during auth.
-        const c = this.connections[connName]
-        if (c?.conn) {
-          this.$config.conn[connName].enabled = true
-          c.conn.start(this.$config.conn[connName])
-        }
+        // Re-enable: the sockio-settings 'config.enabled' watcher calls start() automatically
+        if (connName) this.$config.conn[connName].enabled = true
       } else {
         this.show_dialog = !this.gotConfig
       }

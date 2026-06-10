@@ -87,6 +87,33 @@ Toggle button can be added later.
   - Replaced `v-simple-table` (V2, removed) with `v-table density="compact"` (V3)
   - Removed `<template v-slot:default>` slot wrapper around tbody
 
+## Auth bug fixes (2026-06-10 session 2)
+
+Three bugs causing auth to fail or show wrong UI:
+
+1. **`flexdash.html` wrong bundle filenames**: Referenced `index.15f7c1ef.js` and
+   `index.b6dd8f1f.css` which don't exist. Correct files: `index.f7268a74.js` +
+   `index.02099a86.css`. The page loaded but the app never mounted.
+
+2. **`connections.vue` doAuth opened connections dialog**: `doAuth` was calling
+   `this.show_dialog = true` which opens the full server-settings dialog ON TOP of the
+   auth widget. User saw the big settings page ("the page you had created") instead of
+   just the auth dialog. Fixed by removing `this.show_dialog = true` from `doAuth`.
+
+3. **`connections.vue` authDone double-start**: `authDone` explicitly called
+   `c.conn.start(config)` AND setting `enabled = true` also triggered the
+   `sockio-settings` watcher's `start()` call. Second `start()` called `stop()` on the
+   first connection just as it was receiving the config, causing the config to be dropped
+   ("Already got config, dropping message" guard in handleMsg). Fixed by removing the
+   explicit `start()` from `authDone` — the watcher handles it.
+
+4. **`flexdash.js` login session save race**: `login()` set `req.session.rooms = "*"` then
+   immediately called `res.status(200).end()`. FlexDash received the 200 and reconnected
+   the socket.io before the session file store finished writing. Server's auth check loaded
+   the un-saved session → found no `rooms` → rejected again. Fixed by wrapping the response
+   in `req.session.save(cb)` so the session file is committed before the 200 is sent.
+   This also fixes incognito (where the file write race is more likely to lose).
+
 ## Status
 - [x] Feature 1: dynamic-panel widget — `src/widgets/dynamic-panel.vue` (new)
 - [x] Feature 2: collapse toggle + `visible` binding — `src/components/widget-wrap.vue` + `src/edit-panels/widget-edit.vue`
