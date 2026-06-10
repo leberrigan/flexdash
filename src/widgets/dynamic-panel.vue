@@ -18,11 +18,14 @@
 <style scoped>
 .dynamic-panel {
   width: 100%;
-  display: flex;
-  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
   gap: 4px;
   overflow-y: auto;
   padding: 4px;
+  align-content: start;
 }
 </style>
 
@@ -70,7 +73,7 @@ const DynamicChild = {
       this.bindings = {}
       if (!config) return
       for (const k in config) {
-        if (k !== 'kind' && k !== 'dynamic' && k !== 'output') this.bindings[k] = config[k]
+        if (k !== 'kind' && k !== 'dynamic' && k !== 'output' && k !== 'cols') this.bindings[k] = config[k]
       }
       for (const k in (config.dynamic || {})) {
         this.watchers.push(this.addDynBinding(k, config.dynamic[k]))
@@ -87,7 +90,10 @@ const DynamicChild = {
 
   render() {
     const comp = resolveComponent(this.config?.kind || 'Stat')
-    return h(comp, this.bindings)
+    const cols = this.config?.cols || 1
+    return h('div', { style: { gridColumn: `span ${cols}`, minHeight: 0, display: 'flex', flexDirection: 'column' } },
+      [h(comp, this.bindings)]
+    )
   },
 }
 
