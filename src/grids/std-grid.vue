@@ -131,7 +131,8 @@ export default {
     editComponent() {
       return Object.fromEntries(this.widgets.map(wid => {
         if (wid.startsWith('x')) return [wid, "DisabledEdit"]
-        if (this.$store.widgetByID(wid).kind.endsWith("Panel")) return [wid, "PanelEdit"]
+        const kind = this.$store.widgetByID(wid).kind
+        if (this.palette.widgets[kind]?.edit_panel) return [wid, "PanelEdit"]
         return [wid, "WidgetEdit"]
       }))
     },

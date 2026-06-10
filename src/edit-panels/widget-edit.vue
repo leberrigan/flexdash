@@ -75,6 +75,15 @@
                 @update:modelValue="handleEditOutput($event)">
             </v-combobox>
 
+            <!-- row for visibility binding -->
+            <v-combobox
+                label="visibility binding" clearable density="compact" persistent-hint
+                hint="topic that controls widget visibility (truthy=show, falsy=hide)"
+                :items="sd_keys"
+                :model-value="widget.dynamic && widget.dynamic.visible"
+                @update:modelValue="handleEditVisible($event)">
+            </v-combobox>
+
           </div>
         </v-card-text>
 
@@ -311,6 +320,10 @@ export default {
 
     handleEditOutput(value) {
       this.$store.updateWidget(this.widget_id, {output: value})
+    },
+
+    handleEditVisible(value) {
+      this.$store.updateWidgetProp(this.widget_id, 'dynamic', 'visible', value || undefined)
     },
 
     // copyWidget(dir) {

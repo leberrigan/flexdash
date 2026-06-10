@@ -13,16 +13,14 @@
     </v-card-title>
     <v-card-text>
       Sorry, but the connection to the server requires an unknown authentication method:
-      <v-simple-table dense fixed-header>
-        <template v-slot:default>
-          <tbody>
-            <tr v-for="val, key in config" :key="key">
-              <td align="right" class="px-1"><b>{{key}}:</b></td>
-              <td class="px-2">{{val}}</td>
-            </tr>
-          </tbody>
-        </template>
-      </v-simple-table>
+      <v-table density="compact">
+        <tbody>
+          <tr v-for="(val, key) in config" :key="key">
+            <td align="right" class="px-1"><b>{{key}}:</b></td>
+            <td class="px-2">{{val}}</td>
+          </tr>
+        </tbody>
+      </v-table>
     </v-card-text>
   </v-card>
 </template>

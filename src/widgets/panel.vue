@@ -48,6 +48,7 @@ function filter_object(obj, filter) {
 
 export default {
   name: 'Panel',
+  edit_panel: true, // signals std-grid/panel to use PanelEdit rather than WidgetEdit
   help: `Rectangular container to create a custom arrangement of widgets.
 The panel widget contains a half-sized grid into which widgets can be placed.
 Unlike the outer grid, the panel does not resize itself with browser window
@@ -60,7 +61,7 @@ act only as a fixed arrangement of widgets.`,
 
   components: { PanelEdit, WidgetEdit, WidgetMenu },
 
-  inject: ['$store', '$config', 'global'],
+  inject: ['$store', '$config', 'global', 'palette'],
 
   props: {
     id: null, // panel's own widget id
@@ -79,9 +80,10 @@ act only as a fixed arrangement of widgets.`,
 
     // editComponent returns the component used to edit a widget: widget-edit or panel-edit
     editComponent() {
-      return Object.fromEntries(this.real_widgets.map(wid =>
-        [ wid, this.$store.widgetByID(wid).kind.endsWith("Panel") ? "PanelEdit" : "WidgetEdit" ]
-      ))
+      return Object.fromEntries(this.real_widgets.map(wid => {
+        const kind = this.$store.widgetByID(wid).kind
+        return [ wid, this.palette.widgets[kind]?.edit_panel ? "PanelEdit" : "WidgetEdit" ]
+      }))
     },
     panel_style() {
       const widget = this.$store.widgetByID(this.id)

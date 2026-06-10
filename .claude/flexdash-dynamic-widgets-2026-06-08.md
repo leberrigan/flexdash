@@ -75,6 +75,18 @@ Toggle button can be added later.
 
 ---
 
+## Feature 3: Auth dialog fix (connections.vue + auth-unknown.vue)
+- `connections.vue`:
+  - Removed `defineAsyncComponent(name, loader)` (wrong 2-arg call; components already registered globally)
+  - Removed unused `defineAsyncComponent` import
+  - Fixed `auth-unknown` exclusion check in `auth_strategies` loop (`name !== 'auth-unknown'`)
+  - Replaced `<v-dialog eager :value="show_auth">` (empty, V2 syntax) with:
+    `<v-dialog :model-value="!!show_auth" @update:modelValue="...">` containing
+    `<component :is="show_auth" :config="auth_config" @change="authDone">`
+- `auth-unknown.vue`:
+  - Replaced `v-simple-table` (V2, removed) with `v-table density="compact"` (V3)
+  - Removed `<template v-slot:default>` slot wrapper around tbody
+
 ## Status
 - [x] Feature 1: dynamic-panel widget — `src/widgets/dynamic-panel.vue` (new)
 - [x] Feature 2: collapse toggle + `visible` binding — `src/components/widget-wrap.vue` + `src/edit-panels/widget-edit.vue`
@@ -105,6 +117,22 @@ Toggle button can be added later.
   - `handleCollapse(val)` method sets `this.collapsed`
   - `@collapse="handleCollapse"` wired on `<widget-wrap>`
   - `widgetStyle`: when `collapsed`, returns `span 1` + `max-height: 2.5rem` to minimize grid slot
+
+## Feature 4: Visibility binding UI in widget edit panel (2026-06-10)
+- **Change:** `src/edit-panels/widget-edit.vue` — added "visibility binding" combobox row below
+  "output binding", using the same `sd_keys` dropdown. Sets/clears `widget.dynamic.visible`.
+- **Handler:** `handleEditVisible(value)` calls `updateWidgetProp(id, 'dynamic', 'visible', value || undefined)`.
+  Passing `undefined` removes the binding (treated as "not set" by genBindings).
+- **How it works end-to-end:** User picks a topic in the edit panel → topic path stored in
+  `widget.dynamic.visible` → widget-wrap's genBindings watches that path in store.sd →
+  when server sends falsy value, widget collapses (hidden); truthy restores it.
+
+## Bug fix: DynamicPanel routed to PanelEdit (2026-06-10)
+- **Bug:** `std-grid.vue` and `panel.vue` used `kind.endsWith("Panel")` to decide whether to use
+  `PanelEdit`. `DynamicPanel` matched this, getting `PanelEdit` which shows no prop editor.
+- **Fix:** Added `edit_panel: true` to `src/widgets/panel.vue` export. Changed `endsWith("Panel")`
+  to `palette.widgets[kind]?.edit_panel` in both `std-grid.vue` and `panel.vue`. Added `palette`
+  to panel.vue's inject list. `widget-wrap.vue`'s `isPanel` uses exact `== "Panel"` already — no change.
 
 ## Server usage
 To bind `visible` on any widget, set in the widget config:

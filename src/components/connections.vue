@@ -73,13 +73,14 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog eager :value="show_auth">
+    <v-dialog :model-value="!!show_auth" @update:modelValue="v => { if (!v) authDone('failed') }">
+      <component v-if="show_auth" :is="show_auth" :config="auth_config" @change="authDone">
+      </component>
     </v-dialog>
   </div>
 </template>
 
 <script scoped>
-import {defineAsyncComponent} from 'vue'
 import Masonry from '/src/components/masonry.vue'
 import MasonryBrick from '/src/components/masonry-brick.vue'
 import DemoSettings from '/src/connections/demo-settings.vue'
@@ -89,12 +90,13 @@ import WebsockConnection from '/src/connections/websock.js'
 import SockioSettings from '/src/connections/sockio-settings.vue'
 import SockioConnection from '/src/connections/sockio.js'
 
+// Build list of known auth strategies from the auth-*.vue component filenames.
+// The components themselves are registered globally by palette-loader.
 var auth_strategies = []
 const auth_modules = import.meta.glob('/src/components/auth-*.vue')
 for (const path in auth_modules) {
-  const name = path.split('/').pop().replace('.vue', '')
-  if (name !== 'unknown') auth_strategies.push(name.replace('auth-', ''))
-  defineAsyncComponent(name, auth_modules[path])
+  const name = path.split('/').pop().replace('.vue', '') // e.g. 'auth-user-password'
+  if (name !== 'auth-unknown') auth_strategies.push(name.replace('auth-', ''))
 }
 
 export default {
