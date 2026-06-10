@@ -102,7 +102,7 @@ const DynamicChild = {
       hasTitle && h('div', { class: 'text-caption text-center px-1 pt-1 flex-shrink-0' }, config.title),
       h(comp, this.bindings),
     ].filter(Boolean)
-    return h('div', { style: { gridColumn: `span ${cols}`, minHeight: 0, display: 'flex', flexDirection: 'column' } },
+    return h('div', { style: { gridColumn: `span ${cols}`, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' } },
       children
     )
   },

@@ -46,9 +46,30 @@ not the Lotek VHF frequency. Widget falls back to type-based colour inference wh
 doesn't match the 430–436 MHz UHF band. Proper fix: look up actual tuning frequency from
 acquisition plan in `genDevInfo()`.
 
+## Hub detection fix (2026-06-10)
+**Bug**: portmap lists both depth-3 (generic hub) AND depth-4 (D-Link) entries for the same
+Pi port. Old code combined them → maxDepth=4 → D-Link regardless of what's actually connected.
+Also caused duplicate p7 (both `1.5.4 → 7` at depth-3 and `1.5.4.1 → 7` at depth-4).
+
+**Fix**: `parsePortmap` now returns flat `hubEntries` (no pre-grouping). `sortedHubs` computed:
+1. Scans `devices` for hub-connected devices (port_path depth ≥ 3)
+2. Groups by Pi-level path prefix
+3. Determines type from **connected device** path depths (not portmap depths)
+4. Filters portmap entries to the matching depth only → no duplicates
+5. Hub section only shown when devices are actually connected to that hub
+
+**Hub type ambiguity** (Y-splitter vs generic hub with ≤2 devices):
+Cannot be distinguished from `devices` data alone. Current heuristic: `connected.length <= 2`
+at depth-3 → splitter illustration. Long-term fix: server-side USB hub enumeration
+(scan `/sys/bus/usb/devices/` for hub vendor/product IDs; D-Link DUB-H7 = Genesys Logic
+GL850G, VID 05e3). Add to sensorgnome-control as a new topic `usb_hubs`.
+
 ## Status
 - [x] Widget file created: `src/widgets/usb-port-map.vue`
+- [x] Hub type detection fixed — uses connected device depths, not portmap depths
+- [x] Duplicate port bug fixed
 - [ ] Port label positions calibrated in browser
 - [ ] Add to a FlexDash tab in `fd-config.json`
 - [ ] Test with real device data
+- [ ] Optional: server-side USB hub enumeration (vendor/product ID detection)
 - [ ] Optional: fix frequency data in dashboard.js genDevInfo()

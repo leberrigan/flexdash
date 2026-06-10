@@ -215,11 +215,15 @@ const ILLUST_W = {
   generic:  115,   // 95px body + 20px margin
 }
 
-// Parse portmap_file text into topology.
-// Returns { piPorts: { "1.X": logPort }, hubGroups: { "1.X": { ... } } }
+// Parse portmap_file text.
+// Returns { piPorts: { "1.X": logPort }, hubEntries: [{ path, logPort, depth, piPath }] }
+// Hub entries are kept flat — grouping and type classification happens in sortedHubs
+// using the *connected* devices, not just the portmap, to avoid misclassification when
+// the portmap lists multiple alternative hub configurations (generic + D-Link) for the
+// same Pi port.
 function parsePortmap(text) {
-  const piPorts  = {}
-  const entries  = []
+  const piPorts    = {}
+  const hubEntries = []
 
   for (const raw of (text || '').split('\n')) {
     const m = raw.replace(/#.*/, '').trim().match(/^([\d.]+)\s*->\s*(\d+)$/)
@@ -228,40 +232,16 @@ function parsePortmap(text) {
     if (parts.length === 2) {
       piPorts[m[1]] = m[2]
     } else if (parts.length >= 3) {
-      entries.push({
-        path:   m[1],
+      hubEntries.push({
+        path:    m[1],
         logPort: m[2],
-        depth:  parts.length,
-        piPath: parts[0] + '.' + parts[1],
+        depth:   parts.length,
+        piPath:  parts[0] + '.' + parts[1],
       })
     }
   }
 
-  const groups = {}
-  for (const e of entries) {
-    if (!groups[e.piPath]) {
-      groups[e.piPath] = {
-        piPath:        e.piPath,
-        piLogicalPort: piPorts[e.piPath] || '?',
-        ports:         [],
-        maxDepth:      0,
-      }
-    }
-    groups[e.piPath].ports.push({ path: e.path, logicalPort: e.logPort })
-    if (e.depth > groups[e.piPath].maxDepth) groups[e.piPath].maxDepth = e.depth
-  }
-
-  // Classify hub type:
-  //   ≤2 ports                  → Y-splitter cable
-  //   max depth ≥ 4             → D-Link style (internal chip adds one extra hop)
-  //   otherwise                 → generic hub
-  for (const g of Object.values(groups)) {
-    g.type = g.ports.length <= 2 ? 'splitter'
-           : g.maxDepth >= 4     ? 'dlink'
-           :                       'generic'
-  }
-
-  return { piPorts, hubGroups: groups }
+  return { piPorts, hubEntries }
 }
 
 export default {
@@ -318,8 +298,58 @@ Hub sections are drawn automatically from the portmap topology.`,
       return parsePortmap(this.portmap)
     },
     sortedHubs() {
-      return Object.values(this.topology.hubGroups)
-        .sort((a, b) => (Number(a.piLogicalPort) || 0) - (Number(b.piLogicalPort) || 0))
+      const { piPorts, hubEntries } = this.topology
+
+      // Step 1: group connected devices by Pi-level path prefix (first two path segments).
+      // Only devices whose port_path has depth ≥ 3 are behind a hub.
+      const byPiPath = {}
+      for (const [logPort, dev] of Object.entries(this.devices || {})) {
+        const pp = dev.port_path || ''
+        if (!pp || pp === '--') continue
+        const parts = pp.split('.')
+        if (parts.length < 3) continue
+        const piPath = parts[0] + '.' + parts[1]
+        if (!byPiPath[piPath]) byPiPath[piPath] = []
+        byPiPath[piPath].push({ logPort, dev, depth: parts.length })
+      }
+
+      if (Object.keys(byPiPath).length === 0) return []
+
+      // Step 2: for each Pi port with hub devices, build a hub section.
+      const hubs = []
+      for (const [piPath, connected] of Object.entries(byPiPath)) {
+        // Hub type is determined by the DEEPEST path among connected devices.
+        // This correctly distinguishes:
+        //   depth 4 (e.g. 1.5.4.1) → D-Link (internal hub chip adds an extra hop)
+        //   depth 3 (e.g. 1.5.1)   → generic hub or Y-splitter
+        const maxDepth = Math.max(...connected.map(d => d.depth))
+        const type = maxDepth >= 4      ? 'dlink'
+                   : connected.length <= 2 ? 'splitter'
+                   :                        'generic'
+
+        // Step 3: select only the portmap entries that match the active depth.
+        // This prevents the duplicate-port bug caused by the portmap listing both
+        // depth-3 (generic hub) and depth-4 (D-Link) entries for the same Pi port.
+        const activeEntries = hubEntries.filter(
+          e => e.piPath === piPath && e.depth === maxDepth
+        )
+
+        // Step 4: merge portmap entries with actually-connected devices, deduped by logPort.
+        const portMap = new Map()
+        for (const e of activeEntries) portMap.set(e.logPort, { logicalPort: e.logPort })
+        for (const c of connected)     portMap.set(c.logPort, { logicalPort: c.logPort })
+
+        // Sort: 1-9 ascending, then 0 (used for the 10th port in the D-Link portmap)
+        const ports = [...portMap.values()].sort((a, b) => {
+          const an = a.logicalPort === '0' ? 100 : Number(a.logicalPort)
+          const bn = b.logicalPort === '0' ? 100 : Number(b.logicalPort)
+          return an - bn
+        })
+
+        hubs.push({ piPath, piLogicalPort: piPorts[piPath] || '?', type, ports })
+      }
+
+      return hubs.sort((a, b) => (Number(a.piLogicalPort) || 0) - (Number(b.piLogicalPort) || 0))
     },
     svgH() {
       return PI_H + this.sortedHubs.length * HUB_H
