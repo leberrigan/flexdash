@@ -44,6 +44,8 @@ export default {
     config: { type: Object, required: true },
   },
 
+  emits: ['change'],
+
   data() {
     return {
       user: this.config.user || "",

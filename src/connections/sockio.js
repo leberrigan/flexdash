@@ -146,6 +146,7 @@ export default class SockioConnection {
   }
 
   stop() {
+    if (this.checker) { window.clearInterval(this.checker); this.checker = null }
     if (this.sock) {
       console.log("SIO: closing")
       this.sock.close()
@@ -161,6 +162,7 @@ export default class SockioConnection {
       this.sock.emit(kind, topic, payload)
       if (this.sock.sendBuffer.length > 0 && this.checker === null) {
         this.checker = window.setInterval(()=> {
+          if (!this.sock) { window.clearInterval(this.checker); this.checker = null; return }
           this.setStatus()
           if (this.sock.sendBuffer.length === 0) {
             window.clearInterval(this.checker)
