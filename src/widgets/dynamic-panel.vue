@@ -6,7 +6,7 @@
 -->
 
 <template>
-  <div class="dynamic-panel">
+  <div :class="['dynamic-panel', { 'dp-card': card }]">
     <dynamic-child
       v-for="(item, ix) in widgets"
       :key="ix"
@@ -26,6 +26,11 @@
   overflow-y: auto;
   padding: 4px;
   align-content: start;
+}
+.dp-card {
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  border-radius: 4px;
+  padding: 2px;
 }
 </style>
 
@@ -72,8 +77,8 @@ const DynamicChild = {
       this.watchers = []
       this.bindings = {}
       if (!config) return
-      for (const k in config) {
-        if (k !== 'kind' && k !== 'dynamic' && k !== 'output' && k !== 'cols' && k !== 'title') this.bindings[k] = config[k]
+      for (const k in (config.static || {})) {
+        this.bindings[k] = config.static[k]
       }
       for (const k in (config.dynamic || {})) {
         this.watchers.push(this.addDynBinding(k, config.dynamic[k]))
@@ -114,6 +119,7 @@ reactive per-child bindings: { "kind": "Stat", "title": "Temp", "dynamic": { "va
 
   props: {
     widgets: { type: Array, default: () => [] },
+    card:    { type: Boolean, default: false },
   },
 }
 </script>

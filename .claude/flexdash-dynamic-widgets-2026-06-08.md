@@ -190,6 +190,25 @@ User requested: visibility and collapsible binding UI should only appear for:
 
 ---
 
+## Bug fix: Auth dialog — reconnect after login (2026-06-10)
+
+**Symptom:** Auth dialog (`auth-user-password`) appeared, user could log in, but FlexDash
+content never appeared afterward. Also: dialog was rendering full-width.
+
+**Root cause:** `connections.vue`'s `authDone('success')` set `config.enabled = true` but
+relied on a reactive watcher in `sockio-settings.vue` to restart the socket.io connection.
+That watcher was unreliable when the connections dialog was just opened/closed during auth flow.
+
+**Fixes:**
+- `connections.vue` `authDone`: now explicitly calls `c.conn.start(config)` directly after
+  setting `enabled = true`, instead of relying on the watcher. Moved `auth_conn`/`auth_config`
+  reset to happen before the conditional to avoid null-ref if start() triggers another doAuth.
+- `sockio.js` `start()`: added `this.stop()` at top to clean up any existing socket before
+  creating a new one (idempotent — safe if called twice, e.g. direct call + watcher both fire).
+- `connections.vue` auth `v-dialog`: added `max-width="440"` to prevent full-width rendering.
+
+---
+
 ## Server usage
 To bind `visible` on any widget, set in the widget config:
 ```json
