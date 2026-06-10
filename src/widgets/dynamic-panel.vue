@@ -32,7 +32,7 @@ import { walkTree } from '/src/store.js'
 
 const DynamicChild = {
   name: 'DynamicChild',
-  inject: ['$store'],
+  inject: ['$store', '$conn'],
 
   props: {
     config: { type: Object, required: true },
@@ -70,10 +70,15 @@ const DynamicChild = {
       this.bindings = {}
       if (!config) return
       for (const k in config) {
-        if (k !== 'kind' && k !== 'dynamic') this.bindings[k] = config[k]
+        if (k !== 'kind' && k !== 'dynamic' && k !== 'output') this.bindings[k] = config[k]
       }
       for (const k in (config.dynamic || {})) {
         this.watchers.push(this.addDynBinding(k, config.dynamic[k]))
+      }
+      if (config.output) {
+        const output = config.output
+        const conn = this.$conn
+        this.bindings['onSend'] = (data) => conn?.serverSend(output, data)
       }
     },
   },
