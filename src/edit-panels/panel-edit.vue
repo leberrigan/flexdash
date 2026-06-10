@@ -13,7 +13,8 @@
                :scrim="false" @click:outside="endEdit">
       <template #activator="{ props }">
         <!-- Panel proper inside a widget-wrap -->
-        <widget-wrap :config="widget" @edit="toggleEdit" :color="color" :ref="props.ref">
+        <widget-wrap :config="widget" @edit="toggleEdit" @collapse="handleCollapse"
+                     :color="color" :ref="props.ref">
         </widget-wrap>
       </template>
 
@@ -34,6 +35,24 @@
                               @move="dir=>$emit('move', dir)" @changeSolid="changeSolid"
                               @teleport="(src, dst)=>$emit('teleport', src, dst)">
         </widget-edit-toolbar>
+
+        <!-- visibility and collapsible bindings -->
+        <v-card-text>
+          <v-combobox
+              label="visibility binding" clearable density="compact" persistent-hint
+              hint="topic that controls panel visibility (truthy=show, falsy=hide)"
+              :items="sd_keys"
+              :model-value="widget.dynamic && widget.dynamic.visible"
+              @update:modelValue="handleEditVisible($event)">
+          </v-combobox>
+          <v-combobox class="mt-2"
+              label="collapsible binding" clearable density="compact" persistent-hint
+              hint="topic that shows/hides the collapse button (truthy=show button)"
+              :items="sd_keys"
+              :model-value="widget.dynamic && widget.dynamic.collapsible"
+              @update:modelValue="handleEditCollapsible($event)">
+          </v-combobox>
+        </v-card-text>
 
       </v-card>
     </v-overlay>
@@ -57,7 +76,7 @@ export default {
   name: 'PanelEdit',
 
   components: { WidgetWrap, WidgetEditToolbar, TitleEdit, HelpEdit, PropEdit, md },
-  inject: [ '$store', 'palette' ],
+  inject: [ '$store', 'palette', 'global' ],
 
   props: {
     widget_id: { type: String, required: true }, // my widget ID
@@ -68,16 +87,18 @@ export default {
   emits: [ 'move', 'teleport', 'delete', 'clone' ],
 
   data() { return {
-    edit_help: false, // more... help text expansion toggle
+    edit_help: false,
+    sd_keys: [],
+    collapsed: false,
   }},
 
   created() {
-    // ensure the panel widget has a widgets array property
     const p = this.$store.widgetByID(this.widget_id)
     if (!('widgets' in p.static)) {
       console.log("widget missing:", JSON.stringify(p))
       this.$store.updateWidgetProp(this.widget_id, 'static', 'widgets', [])
     }
+    if (!p.dynamic) this.$store.updateWidget(this.widget_id, { dynamic: {} })
   },
 
   computed: {
@@ -88,13 +109,19 @@ export default {
       return undefined
     },
 
-    // style attribute for widget to determine size
     widgetStyle() {
-      // note: if rows/cols don't exist when the widget is created the widgetStyle will not
-      // recompute in Vue2
-      const row = `grid-row-start: span ${this.widget.rows||1}`
-      const col = `grid-column-start: span ${this.widget.cols||1}`
-      return `${row}; ${col};`
+      if (this.collapsed) {
+        return {
+          'grid-row-start': 'span 1',
+          'grid-column-start': `span ${this.widget.cols||1}`,
+          'max-height': '2.5rem',
+          'overflow': 'hidden',
+        }
+      }
+      return {
+        'grid-row-start': `span ${this.widget.rows||1}`,
+        'grid-column-start': `span ${this.widget.cols||1}`,
+      }
     },
 
     // panel background color
@@ -105,11 +132,17 @@ export default {
     widget() { return this.$store.widgetByID(this.widget_id) },
   },
 
+  watch: {
+    edit_active(val) {
+      if (val) this.sd_keys = Object.keys(this.$store.sd).sort()
+    },
+  },
+
   methods: {
-    // toggle edit handles the edit event from the child component
     toggleEdit() { this.$emit('edit', !this.edit_active) },
-    // cancel button in edit panel
     endEdit() { this.$emit('edit', false) },
+
+    handleCollapse(val) { this.collapsed = val },
 
     handleTitleEdit(value) {
       this.$store.updateWidgetProp(this.widget_id, 'static', 'title', value)
@@ -117,6 +150,14 @@ export default {
 
     changeSolid(value) {
       this.$store.updateWidgetProp(this.widget_id, 'static', 'solid', value)
+    },
+
+    handleEditVisible(value) {
+      this.$store.updateWidgetProp(this.widget_id, 'dynamic', 'visible', value || undefined)
+    },
+
+    handleEditCollapsible(value) {
+      this.$store.updateWidgetProp(this.widget_id, 'dynamic', 'collapsible', value || undefined)
     },
 
   },

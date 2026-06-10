@@ -118,6 +118,15 @@ Toggle button can be added later.
   - `@collapse="handleCollapse"` wired on `<widget-wrap>`
   - `widgetStyle`: when `collapsed`, returns `span 1` + `max-height: 2.5rem` to minimize grid slot
 
+## Feature 5: collapsible meta-prop — opt-in collapse button (2026-06-10)
+- Removed hardcoded chevron-up button from all widgets (was always showing in view mode).
+- Added `collapsible` meta-prop (like `visible`) in `widget-wrap.vue`:
+  - Special-cased in `genBindings` and `updateBindingValue` alongside `visible`
+  - Collapse button (chevron-up) now has `v-if="!!bindings.collapsible"` — only shown when bound
+  - Watch on `bindings.collapsible`: auto-expands the widget if collapsible goes falsy while collapsed
+- Added "collapsible binding" combobox + `handleEditCollapsible` in `widget-edit.vue`
+- Server sends truthy to a topic → collapse button appears on that widget; falsy → button hidden + auto-expand
+
 ## Feature 4: Visibility binding UI in widget edit panel (2026-06-10)
 - **Change:** `src/edit-panels/widget-edit.vue` — added "visibility binding" combobox row below
   "output binding", using the same `sd_keys` dropdown. Sets/clears `widget.dynamic.visible`.
@@ -133,6 +142,53 @@ Toggle button can be added later.
 - **Fix:** Added `edit_panel: true` to `src/widgets/panel.vue` export. Changed `endsWith("Panel")`
   to `palette.widgets[kind]?.edit_panel` in both `std-grid.vue` and `panel.vue`. Added `palette`
   to panel.vue's inject list. `widget-wrap.vue`'s `isPanel` uses exact `== "Panel"` already — no change.
+
+## Feature 6: Restrict visibility/collapsible controls to specific widget types (2026-06-10)
+
+User requested: visibility and collapsible binding UI should only appear for:
+**DynamicPanel, Panel, CustomWidget, Grid, iFrame**
+
+### Changes made:
+
+**`widget-edit.vue`** (handles WidgetEdit — DynamicPanel, CustomWidget, IFrame):
+- Added `has_visibility_controls` computed: `['DynamicPanel', 'CustomWidget', 'IFrame'].includes(this.widget.kind)`
+- Added `v-if="has_visibility_controls"` to both combobox rows
+
+**`panel-edit.vue`** (handles Panel widgets — uses PanelEdit, not WidgetEdit):
+- Added `global` to inject (was missing)
+- Added `sd_keys: [], collapsed: false` to data
+- Modified `widgetStyle` to return an object and handle collapsed state (same as widget-edit.vue)
+- Added `@collapse="handleCollapse"` on widget-wrap
+- Added `v-card-text` section with visibility and collapsible comboboxes (always shown — Panel always gets them)
+- Added `handleCollapse`, `handleEditVisible`, `handleEditCollapsible` methods
+- Added `watch: { edit_active }` to populate `sd_keys` on edit open
+- Added `dynamic: {}` initialization in `created()` for panels missing the field
+
+**`grid-bar.vue`** (StdGrid header bar):
+- Added `can_rollup: { type: Boolean, default: true }` prop
+- `rollupMini` and `rollupMaxi` computed now also check `&& this.can_rollup`
+- Rollup button is hidden in view mode when `can_rollup` is false (binding resolves to falsy)
+
+**`std-grid.vue`** (StdGrid):
+- Imported `walkTree` from `/src/store.js`
+- Added `grid_visible: true, grid_collapsible: true, _vis_watcher: null, _coll_watcher: null` to data
+- Added `sd_keys` computed: `Object.keys(this.$store.sd).sort()`
+- Added watcher on `grid.dynamic` (immediate) to call `setupDynBindings`
+- Added `setupDynBindings(dyn)` method: tears down old watchers, sets up new `$watch` calls
+  using same path-split pattern as widget-wrap (`path.pop()` + `walkTree(sd, path)[n]`)
+- Added `handleEditVisible` and `handleEditCollapsible` methods that merge into `grid.dynamic`
+  and call `this.$store.updateGrid(id, { dynamic: merged })`
+- Added `v-show="grid_visible"` on `<div ref="outer">` to hide entire grid
+- Added `:can_rollup="grid_collapsible"` on `<grid-bar>` 
+- Added visibility/collapsible comboboxes to the grid-bar slot (appear only in editMode since slot is inside `v-toolbar v-if="global.editMode"`)
+- Cleanup of `_vis_watcher` and `_coll_watcher` in `beforeUnmount`
+
+### Semantics:
+- **No binding** → same as before (grid always visible, rollup always available)
+- **`visible` binding** → when binding resolves to falsy, entire grid (including bar) hidden via v-show
+- **`collapsible` binding** → when binding resolves to falsy, rollup button hidden; auto-expands if was rolled up
+
+---
 
 ## Server usage
 To bind `visible` on any widget, set in the widget config:

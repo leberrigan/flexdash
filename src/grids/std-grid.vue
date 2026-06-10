@@ -4,31 +4,29 @@
 -->
 
 <template>
-  <div ref="outer">
+  <div ref="outer" v-show="grid_visible">
     <grid-bar kind="StdGrid" :title="grid.title" :has_widgets="grid.widgets.length>0"
-              v-model:rolledup="rolledup" @changeTitle="changeTitle"
-              @delete="$emit('delete')">
+              v-model:rolledup="rolledup" :can_rollup="grid_collapsible"
+              @changeTitle="changeTitle" @delete="$emit('delete')">
       <!-- Menu to add widget -->
       <widget-menu v-if="!global.noAddDelete" @select="addWidget" class="mr-4"></widget-menu>
 
-      <!-- Paste button/text field -->
-      <!--
-        <v-tooltip bottom>
-          <template v-slot:activator="{ props }">
-            <v-btn icon @click="pasting=!pasting" v-bind="props">
-              <v-icon>mdi-content-paste</v-icon>
-            </v-btn>
-          </template>
-          <span>Paste a widget, adding it to the grid</span>
-        </v-tooltip>
-        <div ref="pasteDiv" class="d-flex">
-          <input type="text" v-if="pasting" size="15"
-                placeholder="paste widget here" class="pasteinput">
-        </div>
-      -->
-
       <!-- Selectors for minimum and maximum number of columns -->
       <min-max-cols :grid="grid" :max-widget="maxWidget"></min-max-cols>
+
+      <!-- Visibility and collapsible bindings (edit mode only, inside grid-bar slot) -->
+      <v-combobox label="visible" clearable density="compact" hide-details
+                  style="width:18ex; flex-grow:0" class="mr-2"
+                  :items="sd_keys"
+                  :model-value="grid.dynamic && grid.dynamic.visible"
+                  @update:modelValue="handleEditVisible($event)">
+      </v-combobox>
+      <v-combobox label="collapsible" clearable density="compact" hide-details
+                  style="width:18ex; flex-grow:0"
+                  :items="sd_keys"
+                  :model-value="grid.dynamic && grid.dynamic.collapsible"
+                  @update:modelValue="handleEditCollapsible($event)">
+      </v-combobox>
     </grid-bar>
 
     <!-- Grid of widgets -->
@@ -75,6 +73,7 @@
 <script scoped>
 
 import GridBar from '/src/components/grid-bar.vue'
+import { walkTree } from '/src/store.js'
 import PanelEdit from '/src/edit-panels/panel-edit.vue'
 import WidgetEdit from '/src/edit-panels/widget-edit.vue'
 import DisabledEdit from '/src/edit-panels/disabled-edit.vue'
@@ -97,13 +96,17 @@ export default {
   },
 
   data() { return {
-    edit_ix: null, // widget being edited
-    rolledup: false, // whether grid is rolled-up
-    pasting: false, // controls display of paste div
-    gridScale: "", // style to scale grid up to fill width
-    scale: 1, // scale of grid
-    colw: COLW, // width of columns in pixels
-    gapw: GAPW, // const (gap between widgets in pixels)
+    edit_ix: null,
+    rolledup: false,
+    pasting: false,
+    gridScale: "",
+    scale: 1,
+    colw: COLW,
+    gapw: GAPW,
+    grid_visible: true,    // controlled by grid.dynamic.visible binding
+    grid_collapsible: true, // controlled by grid.dynamic.collapsible binding
+    _vis_watcher: null,
+    _coll_watcher: null,
   }},
 
   computed: {
@@ -127,6 +130,8 @@ export default {
       return { minWidth: `${min_width}px`, maxWidth: `${max_width}px` }
     },
 
+    sd_keys() { return Object.keys(this.$store.sd).sort() },
+
     // editComponent returns the component used to edit a widget: widget-edit or panel-edit
     editComponent() {
       return Object.fromEntries(this.widgets.map(wid => {
@@ -149,9 +154,16 @@ export default {
   beforeUnmount() {
     if(this._ro) this._ro.disconnect()
     this.$bus.off(this.id, this.ctrlEvent)
+    if (this._vis_watcher) this._vis_watcher()
+    if (this._coll_watcher) this._coll_watcher()
   },
 
   watch: {
+    'grid.dynamic': {
+      immediate: true,
+      handler(dyn) { this.setupDynBindings(dyn) },
+    },
+
     pasting(nv) {
       if (nv) {
         this.$refs.pasteDiv.addEventListener('paste', this.pasteWidget)
@@ -174,6 +186,47 @@ export default {
     ...widget_ops, // addWidget, deleteWidget, cloneWidget, moveWIdget, teleportWidget
 
     changeTitle(ev) { this.$store.updateGrid(this.id, { title: ev }) },
+
+    setupDynBindings(dyn) {
+      if (this._vis_watcher) { this._vis_watcher(); this._vis_watcher = null }
+      if (this._coll_watcher) { this._coll_watcher(); this._coll_watcher = null }
+      this.grid_visible = true
+      this.grid_collapsible = true
+      if (!dyn) return
+      if (dyn.visible) {
+        const path = dyn.visible.split('/').filter(t => t.length > 0)
+        const n = path.pop()
+        if (n) this._vis_watcher = this.$watch(
+          () => walkTree(this.$store.sd, path)[n],
+          v => { this.grid_visible = v == null || !!v },
+          { immediate: true }
+        )
+      }
+      if (dyn.collapsible) {
+        const path = dyn.collapsible.split('/').filter(t => t.length > 0)
+        const n = path.pop()
+        if (n) this._coll_watcher = this.$watch(
+          () => walkTree(this.$store.sd, path)[n],
+          v => {
+            this.grid_collapsible = v == null || !!v
+            if (!this.grid_collapsible && this.rolledup) this.rolledup = false
+          },
+          { immediate: true }
+        )
+      }
+    },
+
+    handleEditVisible(value) {
+      const dyn = { ...(this.grid.dynamic || {}) }
+      if (value) dyn.visible = value; else delete dyn.visible
+      this.$store.updateGrid(this.id, { dynamic: Object.keys(dyn).length ? dyn : undefined })
+    },
+
+    handleEditCollapsible(value) {
+      const dyn = { ...(this.grid.dynamic || {}) }
+      if (value) dyn.collapsible = value; else delete dyn.collapsible
+      this.$store.updateGrid(this.id, { dynamic: Object.keys(dyn).length ? dyn : undefined })
+    },
 
     // ctrlEvent is called via $bus in response to a ctrl message from the server
     // allows to roll-up/down the grid

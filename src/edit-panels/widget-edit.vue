@@ -75,13 +75,22 @@
                 @update:modelValue="handleEditOutput($event)">
             </v-combobox>
 
-            <!-- row for visibility binding -->
-            <v-combobox
+            <!-- row for visibility binding (only for supported widget types) -->
+            <v-combobox v-if="has_visibility_controls"
                 label="visibility binding" clearable density="compact" persistent-hint
                 hint="topic that controls widget visibility (truthy=show, falsy=hide)"
                 :items="sd_keys"
                 :model-value="widget.dynamic && widget.dynamic.visible"
                 @update:modelValue="handleEditVisible($event)">
+            </v-combobox>
+
+            <!-- row for collapsible binding (only for supported widget types) -->
+            <v-combobox v-if="has_visibility_controls"
+                label="collapsible binding" clearable density="compact" persistent-hint
+                hint="topic that shows/hides the collapse button (truthy=show button)"
+                :items="sd_keys"
+                :model-value="widget.dynamic && widget.dynamic.collapsible"
+                @update:modelValue="handleEditCollapsible($event)">
             </v-combobox>
 
           </div>
@@ -223,6 +232,10 @@ export default {
       return cp.filter(p => p !== 'title' && p !== 'output_binding').sort()
     },
 
+    has_visibility_controls() {
+      return ['DynamicPanel', 'CustomWidget', 'IFrame'].includes(this.widget.kind)
+    },
+
     // handle a non-vue-standard "help" option in a widget
     child_help() {
       const p = this.palette.widgets
@@ -324,6 +337,10 @@ export default {
 
     handleEditVisible(value) {
       this.$store.updateWidgetProp(this.widget_id, 'dynamic', 'visible', value || undefined)
+    },
+
+    handleEditCollapsible(value) {
+      this.$store.updateWidgetProp(this.widget_id, 'dynamic', 'collapsible', value || undefined)
     },
 
     // copyWidget(dir) {

@@ -93,10 +93,11 @@ export default {
   inject: [ 'global' ],
 
   props: {
-    kind: { type: String, default: '' }, // type of grid (StdGrid, ArrayGrid, ... )
-    title: { type: String, default: '' }, // grid title
+    kind: { type: String, default: '' },
+    title: { type: String, default: '' },
     has_widgets: false,
-    rolledup: false, // whether grid is rolled-up
+    rolledup: false,
+    can_rollup: { type: Boolean, default: true }, // false hides rollup button (server-driven)
   },
 
   emits: [ 'update:rolledup', 'changeTitle', 'delete' ],
@@ -107,8 +108,8 @@ export default {
   computed: {
     // grid config: {id, kind, icon, widgets}
     grid() { return this.$store.gridByID(this.id) },
-    rollupMini() { return !this.global.editMode && !this.title },
-    rollupMaxi() { return !this.global.editMode &&  this.title },
+    rollupMini() { return !this.global.editMode && !this.title && this.can_rollup },
+    rollupMaxi() { return !this.global.editMode &&  this.title && this.can_rollup },
     rollerClasses() { // classes for mini roll-up div
       const rm = this.has_widgets && !this.rolledup && 'roller__minimal'
       return [ 'd-flex', 'roller', rm ]

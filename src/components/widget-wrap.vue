@@ -54,7 +54,7 @@
                  class="justify-center align-center mt-n1 px-2">
             <v-icon size="small">{{pup_info ? "mdi-information-off" : "mdi-information"}}</v-icon>
           </v-btn>
-          <v-btn density="compact" flat @click="toggleCollapsed"
+          <v-btn density="compact" flat v-if="!!bindings.collapsible" @click="toggleCollapsed"
                  class="justify-center align-center mt-n1 px-2" style="min-width:0">
             <v-icon size="small">mdi-chevron-up</v-icon>
           </v-btn>
@@ -234,6 +234,9 @@ export default {
     // Notify widget-edit to adjust grid slot size when hidden state changes
     effective_hidden(val) { this.$emit('collapse', val) },
 
+    // Auto-expand if collapsible binding goes falsy while widget is collapsed
+    'bindings.collapsible': function(val) { if (!val && this.collapsed) this.collapsed = false },
+
     // Generate bindings from store.sd[some_var] -> this.bindings
     // This is how data flows from the server data to the inner component.
     // It would be nice if we could make this.bindings computed properties but this is not
@@ -296,8 +299,8 @@ export default {
         })
         Object.keys(config.dynamic||{}).forEach(p => {
           if (this.is_sfc && p == 'source') return // ignore source for sfc widgets
-          // 'visible' is a meta-prop handled by widget-wrap, not passed to child
-          if (p === 'visible') {
+          // 'visible' and 'collapsible' are meta-props handled by widget-wrap, not passed to child
+          if (p === 'visible' || p === 'collapsible') {
             this.watchers.push( this.addDynBinding(p, config.dynamic[p]) )
             return
           }
@@ -316,9 +319,9 @@ export default {
     // FIXME: need to have some warning show up in UI if the validation will fail 'cause otherwise
     // it's very difficult to locate such issues
     updateBindingValue(prop, val) {
-      // 'visible' is a widget-wrap meta-prop, not a child prop — handle separately
-      if (prop === 'visible') {
-        this.bindings.visible = !!val
+      // 'visible' and 'collapsible' are widget-wrap meta-props, not child props
+      if (prop === 'visible' || prop === 'collapsible') {
+        this.bindings[prop] = !!val
         return
       }
       if (!(prop in this.child_props_plus)) {
