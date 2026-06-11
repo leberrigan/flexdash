@@ -47,108 +47,130 @@
 
         <line x1="0" y1="1" :x2="SVG_W" y2="1" stroke="#374151" stroke-width="1"/>
 
-        <!-- Black Pi-port badge showing which Pi port this hub is on -->
-        <rect x="8" y="4" width="36" height="16" rx="3" fill="#111827"/>
-        <text x="26" y="16" text-anchor="middle"
-              font-size="11" font-weight="bold" fill="white" font-family="sans-serif">
-          p{{ hub.piLogicalPort }}
-        </text>
-
         <!-- ── D-Link DUB-H7 illustration (7-port hub, depth-4 portmap paths) ── -->
-        <g v-if="hub.type === 'dlink'" transform="translate(10, 24)">
-          <!-- Body -->
-          <rect x="0" y="0" width="175" height="62" rx="6" fill="#252525"/>
-          <!-- Top face (slightly lighter) -->
-          <rect x="1" y="1" width="173" height="32" rx="5" fill="#303030"/>
-          <!-- Label -->
-          <text x="87" y="20" text-anchor="middle"
-                fill="#666" font-size="9" font-weight="bold"
-                font-family="sans-serif" letter-spacing="0.3">D-Link  DUB-H7</text>
-          <!-- 7 USB-A female port openings -->
-          <g v-for="pi in 7" :key="pi" :transform="`translate(${4 + (pi-1)*23}, 35)`">
-            <rect x="0" y="0" width="18" height="22" rx="2" fill="#111"/>
-            <rect x="2" y="2" width="14" height="15" rx="1" fill="#090909"/>
-            <rect x="5" y="5" width="8" height="4" fill="#262626"/>
+        <template v-if="hub.type === 'dlink'">
+          <!-- Section badge -->
+          <rect x="8" y="4" width="36" height="16" rx="3" fill="#111827"/>
+          <text x="26" y="16" text-anchor="middle"
+                font-size="11" font-weight="bold" fill="white" font-family="sans-serif">
+            p{{ hub.piLogicalPort }}
+          </text>
+          <g transform="translate(10, 24)">
+            <!-- Body -->
+            <rect x="0" y="0" width="175" height="62" rx="6" fill="#252525"/>
+            <!-- Top face -->
+            <rect x="1" y="1" width="173" height="32" rx="5" fill="#303030"/>
+            <!-- Label -->
+            <text x="87" y="20" text-anchor="middle"
+                  fill="#666" font-size="9" font-weight="bold"
+                  font-family="sans-serif" letter-spacing="0.3">D-Link  DUB-H7</text>
+            <!-- 7 USB-A female port openings -->
+            <g v-for="pi in 7" :key="pi" :transform="`translate(${4 + (pi-1)*23}, 35)`">
+              <rect x="0" y="0" width="18" height="22" rx="2" fill="#111"/>
+              <rect x="2" y="2" width="14" height="15" rx="1" fill="#090909"/>
+              <rect x="5" y="5" width="8" height="4" fill="#262626"/>
+            </g>
+            <!-- Power LED -->
+            <circle cx="170" cy="57" r="3" fill="#22C55E" opacity="0.85"/>
+            <circle cx="170" cy="57" r="5" fill="#22C55E" opacity="0.15"/>
           </g>
-          <!-- Power LED -->
-          <circle cx="170" cy="57" r="3" fill="#22C55E" opacity="0.85"/>
-          <circle cx="170" cy="57" r="5" fill="#22C55E" opacity="0.15"/>
-        </g>
+          <!-- Hub port boxes to the right of illustration -->
+          <g :transform="`translate(${hubIllustW(hub.type) + 18}, 20)`">
+            <g v-for="(hp, hi) in hub.ports" :key="hp.logicalPort"
+               :transform="`translate(${hi * (BOX_W + BOX_GAP)}, 0)`">
+              <rect x="0" y="0" :width="BOX_W" :height="BOX_H" rx="4"
+                    :fill="portFill(hp.logicalPort)"
+                    :fill-opacity="devices[hp.logicalPort] ? 0.90 : 0.22"/>
+              <rect v-if="isErr(hp.logicalPort)"
+                    x="0" y="0" :width="BOX_W" :height="BOX_H" rx="4"
+                    fill="none" stroke="#EF4444" stroke-width="2"/>
+              <text :x="BOX_W/2" y="14" text-anchor="middle"
+                    font-size="9" fill="rgba(255,255,255,0.6)" font-family="sans-serif">
+                p{{ hp.logicalPort }}
+              </text>
+              <text :x="BOX_W/2" y="32" text-anchor="middle"
+                    font-size="11" font-weight="bold"
+                    fill="white" font-family="'Courier New', Courier, monospace">
+                {{ devices[hp.logicalPort] ? typeCode(devices[hp.logicalPort].type) : '' }}
+              </text>
+            </g>
+          </g>
+        </template>
 
-        <!-- ── USB Y-splitter illustration (1 male → 2 female) ── -->
-        <g v-else-if="hub.type === 'splitter'" transform="translate(10, 22)">
-          <!-- USB-A male connector body -->
-          <rect x="29" y="0" width="28" height="17" rx="2" fill="#1A1A1A"/>
-          <!-- Connector opening / cavity -->
-          <rect x="32" y="3" width="22" height="11" rx="1" fill="#363636"/>
-          <!-- Gold contact strips -->
-          <rect x="35" y="5" width="16" height="2.5" fill="#C09000" opacity="0.9"/>
-          <rect x="35" y="9" width="16" height="2.5" fill="#C09000" opacity="0.9"/>
-          <!-- Cable strain-relief sleeve -->
-          <rect x="39" y="17" width="8" height="3" rx="1" fill="#111"/>
-          <!-- Braided cable stem -->
-          <rect x="40" y="20" width="6" height="14" rx="2" fill="#1A1A1A"/>
-          <line x1="40" y1="22" x2="46" y2="25" stroke="#2A2A2A" stroke-width="1.2"/>
-          <line x1="40" y1="25" x2="46" y2="28" stroke="#2A2A2A" stroke-width="1.2"/>
-          <line x1="40" y1="28" x2="46" y2="31" stroke="#2A2A2A" stroke-width="1.2"/>
-          <!-- Splitter junction -->
-          <ellipse cx="43" cy="36" rx="6" ry="5" fill="#111"/>
-          <!-- Left arm cable -->
-          <path d="M43 41 L17 57" stroke="#1A1A1A" stroke-width="7" stroke-linecap="round"/>
-          <!-- Right arm cable -->
-          <path d="M43 41 L69 57" stroke="#1A1A1A" stroke-width="7" stroke-linecap="round"/>
-          <!-- Cable braiding on arms -->
-          <path d="M38 43 L14 57" stroke="#2A2A2A" stroke-width="1.2"/>
-          <path d="M48 43 L72 57" stroke="#2A2A2A" stroke-width="1.2"/>
-          <!-- Left female USB-A port -->
-          <rect x="7" y="57" width="20" height="14" rx="2" fill="#1A1A1A"/>
-          <rect x="9" y="60" width="16" height="8" rx="1" fill="#090909"/>
-          <rect x="12" y="62" width="10" height="3" fill="#222"/>
-          <!-- Right female USB-A port -->
-          <rect x="59" y="57" width="20" height="14" rx="2" fill="#1A1A1A"/>
-          <rect x="61" y="60" width="16" height="8" rx="1" fill="#090909"/>
-          <rect x="64" y="62" width="10" height="3" fill="#222"/>
-        </g>
+        <!-- ── USB Y-splitter: schematic diagram ── -->
+        <template v-else-if="hub.type === 'splitter'">
+          <!-- Input node (Pi port badge, larger than D-Link section badge) -->
+          <rect x="12" y="22" width="58" height="32" rx="6" fill="#111827"/>
+          <text x="41" y="42" text-anchor="middle"
+                font-size="14" font-weight="bold" fill="white" font-family="sans-serif">
+            p{{ hub.piLogicalPort }}
+          </text>
+          <!-- Bezier curves + port boxes, one per hub port, arranged vertically -->
+          <g v-for="(hp, hi) in hub.ports" :key="hp.logicalPort">
+            <path :d="splitterCurve(hi)" stroke="#4B5563" stroke-width="2.5" fill="none"/>
+            <!-- Port box, stacked vertically on the right -->
+            <g :transform="`translate(370, ${8 + hi * 56})`">
+              <rect x="0" y="0" :width="BOX_W" :height="BOX_H" rx="4"
+                    :fill="portFill(hp.logicalPort)"
+                    :fill-opacity="devices[hp.logicalPort] ? 0.90 : 0.22"/>
+              <rect v-if="isErr(hp.logicalPort)"
+                    x="0" y="0" :width="BOX_W" :height="BOX_H" rx="4"
+                    fill="none" stroke="#EF4444" stroke-width="2"/>
+              <text :x="BOX_W/2" y="14" text-anchor="middle"
+                    font-size="9" fill="rgba(255,255,255,0.6)" font-family="sans-serif">
+                p{{ hp.logicalPort }}
+              </text>
+              <text :x="BOX_W/2" y="32" text-anchor="middle"
+                    font-size="11" font-weight="bold"
+                    fill="white" font-family="'Courier New', Courier, monospace">
+                {{ devices[hp.logicalPort] ? typeCode(devices[hp.logicalPort].type) : '' }}
+              </text>
+            </g>
+          </g>
+        </template>
 
         <!-- ── Generic multi-port hub illustration ── -->
-        <g v-else transform="translate(10, 24)">
-          <rect x="0" y="0" width="95" height="52" rx="4" fill="#252525"/>
-          <rect x="1" y="1" width="93" height="26" rx="3" fill="#303030"/>
-          <text x="47" y="17" text-anchor="middle"
-                fill="#666" font-size="9" font-family="sans-serif">USB Hub</text>
-          <g v-for="pi in 4" :key="pi" :transform="`translate(${4 + (pi-1)*22}, 29)`">
-            <rect x="0" y="0" width="17" height="18" rx="2" fill="#111"/>
-            <rect x="2" y="2" width="13" height="11" rx="1" fill="#090909"/>
-            <rect x="5" y="4" width="7" height="3" fill="#222"/>
+        <template v-else>
+          <!-- Section badge -->
+          <rect x="8" y="4" width="36" height="16" rx="3" fill="#111827"/>
+          <text x="26" y="16" text-anchor="middle"
+                font-size="11" font-weight="bold" fill="white" font-family="sans-serif">
+            p{{ hub.piLogicalPort }}
+          </text>
+          <g transform="translate(10, 24)">
+            <rect x="0" y="0" width="95" height="52" rx="4" fill="#252525"/>
+            <rect x="1" y="1" width="93" height="26" rx="3" fill="#303030"/>
+            <text x="47" y="17" text-anchor="middle"
+                  fill="#666" font-size="9" font-family="sans-serif">USB Hub</text>
+            <g v-for="pi in 4" :key="pi" :transform="`translate(${4 + (pi-1)*22}, 29)`">
+              <rect x="0" y="0" width="17" height="18" rx="2" fill="#111"/>
+              <rect x="2" y="2" width="13" height="11" rx="1" fill="#090909"/>
+              <rect x="5" y="4" width="7" height="3" fill="#222"/>
+            </g>
+            <circle cx="90" cy="48" r="2.5" fill="#22C55E" opacity="0.8"/>
           </g>
-          <circle cx="90" cy="48" r="2.5" fill="#22C55E" opacity="0.8"/>
-        </g>
-
-        <!-- Hub port boxes (one per logical port mapped in portmap) -->
-        <g :transform="`translate(${hubIllustW(hub.type) + 18}, 20)`">
-          <g v-for="(hp, hi) in hub.ports" :key="hp.logicalPort"
-             :transform="`translate(${hi * (BOX_W + BOX_GAP)}, 0)`">
-            <!-- Port box background -->
-            <rect x="0" y="0" :width="BOX_W" :height="BOX_H" rx="4"
-                  :fill="portFill(hp.logicalPort)"
-                  :fill-opacity="devices[hp.logicalPort] ? 0.90 : 0.22"/>
-            <!-- Error stroke -->
-            <rect v-if="isErr(hp.logicalPort)"
-                  x="0" y="0" :width="BOX_W" :height="BOX_H" rx="4"
-                  fill="none" stroke="#EF4444" stroke-width="2"/>
-            <!-- Logical port number (small, top) -->
-            <text :x="BOX_W/2" y="14" text-anchor="middle"
-                  font-size="9" fill="rgba(255,255,255,0.6)" font-family="sans-serif">
-              p{{ hp.logicalPort }}
-            </text>
-            <!-- Device type code (bold, centre) -->
-            <text :x="BOX_W/2" y="32" text-anchor="middle"
-                  font-size="11" font-weight="bold"
-                  fill="white" font-family="'Courier New', Courier, monospace">
-              {{ devices[hp.logicalPort] ? typeCode(devices[hp.logicalPort].type) : '' }}
-            </text>
+          <!-- Hub port boxes to the right of illustration -->
+          <g :transform="`translate(${hubIllustW(hub.type) + 18}, 20)`">
+            <g v-for="(hp, hi) in hub.ports" :key="hp.logicalPort"
+               :transform="`translate(${hi * (BOX_W + BOX_GAP)}, 0)`">
+              <rect x="0" y="0" :width="BOX_W" :height="BOX_H" rx="4"
+                    :fill="portFill(hp.logicalPort)"
+                    :fill-opacity="devices[hp.logicalPort] ? 0.90 : 0.22"/>
+              <rect v-if="isErr(hp.logicalPort)"
+                    x="0" y="0" :width="BOX_W" :height="BOX_H" rx="4"
+                    fill="none" stroke="#EF4444" stroke-width="2"/>
+              <text :x="BOX_W/2" y="14" text-anchor="middle"
+                    font-size="9" fill="rgba(255,255,255,0.6)" font-family="sans-serif">
+                p{{ hp.logicalPort }}
+              </text>
+              <text :x="BOX_W/2" y="32" text-anchor="middle"
+                    font-size="11" font-weight="bold"
+                    fill="white" font-family="'Courier New', Courier, monospace">
+                {{ devices[hp.logicalPort] ? typeCode(devices[hp.logicalPort].type) : '' }}
+              </text>
+            </g>
           </g>
-        </g>
+        </template>
 
       </g><!-- end hub sections -->
     </svg>
@@ -178,22 +200,28 @@ const BOX_W = 44    // hub port box width
 const BOX_H = 44    // hub port box height
 const BOX_GAP = 5   // gap between hub port boxes
 
-// Pixel positions of port label overlays within each 475×194 PNG.
-// Key '34' is the shared RPi 3B/4B image (rpi34-usb-ports.png).
-// Key '5' is the RPi 5 image (rpi5-usb-ports.png).
-// Calibrate x/y in browser dev tools; w/h fixed at 60×55.
+// Pixel positions of port label overlays within each 475×194 board image.
+// RPi 3 and 4 use separate image files (rpi3-usb-ports.png / rpi4-usb-ports.png)
+// because their Ethernet ports are on opposite sides and the layouts differ.
+// Calibrate x/y values in browser dev tools; w/h are fixed at 60×55.
 const PORT_POS = {
-  '34': {  // RPi 3B / 3B+ / 4B shared image
-    1: { x: 220, y:  68, w: 60, h: 55 },
+  '3': {   // RPi 3B / 3B+: x/y TBC once rpi3-usb-ports.png is available
+    1: { x: 155, y:  52, w: 60, h: 55 },
+    2: { x: 155, y: 135, w: 60, h: 55 },
+    3: { x: 340, y:  52, w: 60, h: 55 },
+    4: { x: 340, y: 135, w: 60, h: 55 },
+  },
+  '4': {   // RPi 4B: ethernet far-left in image; USB groups at ~x=220 and ~x=375
+    1: { x: 220, y:  52, w: 60, h: 55 },
     2: { x: 220, y: 135, w: 60, h: 55 },
-    3: { x: 375, y:  68, w: 60, h: 55 },
+    3: { x: 375, y:  52, w: 60, h: 55 },
     4: { x: 375, y: 135, w: 60, h: 55 },
   },
-  '5': {   // RPi 5
-    1: { x: 155, y:  30, w: 60, h: 55 },
-    2: { x: 155, y: 105, w: 60, h: 55 },
-    3: { x: 310, y:  30, w: 60, h: 55 },
-    4: { x: 310, y: 105, w: 60, h: 55 },
+  '5': {   // RPi 5: x/y TBC once rpi5-usb-ports.png is available
+    1: { x: 155, y:  52, w: 60, h: 55 },
+    2: { x: 155, y: 135, w: 60, h: 55 },
+    3: { x: 310, y:  52, w: 60, h: 55 },
+    4: { x: 310, y: 135, w: 60, h: 55 },
   },
 }
 
@@ -210,11 +238,11 @@ const TYPE_CODES = {
   'usbAudio':        'AUD',
 }
 
-// Width (px) of each hub illustration, used to position the port boxes to its right
+// Width (px) of each hub illustration, used to position port boxes to its right
 const ILLUST_W = {
-  dlink:    195,   // 175px body + 20px margin
-  splitter: 100,   // ~86px body + 14px margin
-  generic:  115,   // 95px body + 20px margin
+  dlink:   195,   // 175px body + 20px margin
+  generic: 115,   // 95px body + 20px margin
+  // splitter: not used — splitter draws its own port boxes vertically
 }
 
 // Parse portmap_file text.
@@ -271,7 +299,7 @@ Hub sections drawn automatically from portmap topology.`,
       tip: 'portmap file text — bind to `portmap_file`',
     },
     model_image: {
-      type: String, default: '/rpi34-usb-ports.png',
+      type: String, default: '/rpi4-usb-ports.png',
       tip: 'board USB port image URL — bind to `portmap/refimage`',
     },
   },
@@ -290,13 +318,13 @@ Hub sections drawn automatically from portmap topology.`,
 
   computed: {
     piModel() {
-      return (this.model_image || '').match(/rpi(\d+)-usb-ports/)?.[1] || '34'
+      return (this.model_image || '').match(/rpi(\d+)-usb-ports/)?.[1] || '4'
     },
     imageUrl() {
       return this.model_image || null
     },
     portPositions() {
-      return PORT_POS[this.piModel] || PORT_POS['34']
+      return PORT_POS[this.piModel] || PORT_POS['4']
     },
     topology() {
       return parsePortmap(this.portmap)
@@ -360,17 +388,16 @@ Hub sections drawn automatically from portmap topology.`,
   },
 
   methods: {
-    // Returns true when the Pi port has a hub plugged in (not a direct device)
+    // True when the Pi port has a hub plugged in (not a direct device)
     isHubPort(portNum) {
       return this.sortedHubs.some(h => String(h.piLogicalPort) === String(portNum))
     },
 
     portFill(portNum) {
-      // Pi port with a hub → black
-      if (this.isHubPort(portNum)) return '#111827'
+      if (this.isHubPort(portNum)) return '#111827'  // black for hub ports
 
       const dev = this.devices[String(portNum)]
-      if (!dev) return '#374151'  // empty
+      if (!dev) return '#374151'  // dark grey for empty ports
 
       const freq = parseFloat(dev.frequency)
       if (!isNaN(freq) && freq > 0) {
@@ -408,6 +435,17 @@ Hub sections drawn automatically from portmap topology.`,
 
     hubIllustW(type) {
       return ILLUST_W[type] || ILLUST_W.generic
+    },
+
+    // Cubic bezier path from the splitter input badge to a port box.
+    // portIdx 0 = upper box, 1 = lower box (for a standard 2-port splitter).
+    splitterCurve(portIdx) {
+      const sx = 70, sy = 38                    // right edge / mid of input badge
+      const ex = 370                             // left edge of port box column
+      const ey = 8 + portIdx * 56 + BOX_H / 2  // centre of this port's box
+      const cx1 = sx + (ex - sx) * 0.4
+      const cx2 = ex - (ex - sx) * 0.3
+      return `M ${sx} ${sy} C ${cx1} ${sy} ${cx2} ${ey} ${ex} ${ey}`
     },
   },
 }
