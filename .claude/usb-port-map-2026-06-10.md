@@ -64,11 +64,25 @@ at depth-3 → splitter illustration. Long-term fix: server-side USB hub enumera
 (scan `/sys/bus/usb/devices/` for hub vendor/product IDs; D-Link DUB-H7 = Genesys Logic
 GL850G, VID 05e3). Add to sensorgnome-control as a new topic `usb_hubs`.
 
+## Round 2 UI changes (2026-06-11)
+- Switched to `rpi34-usb-ports.png` / `rpi5-usb-ports.png` (no printed port numbers on image)
+- Port overlays: always visible 60×55px boxes; two-line (port number large + type code)
+- Port fill: dark grey when empty, black when hub connected, colour when device present
+- Hub sections: "↳ Hub on port X" text replaced with black "pN" badge
+- TYPE_CODES: airspy→'AM', NanoBabel→'NB', DigiBabel→'DBU', funcubeProPlus→'FCD'
+- Legend: FSK (purple) / PPM (teal) / Other device (grey) / USB hub (black)
+- `dashboard.js portmapRefImage()`: RPi 3+4 → `/rpi34-usb-ports.png`, RPi 5 → `/rpi5-usb-ports.png`
+- PORT_POS: dropped old '3'/'4' keys (now use shared '34' key); '5' key kept
+  - x/y estimates based on user's example (port 2 at x=220, y=135); need browser calibration
+
 ## Status
 - [x] Widget file created: `src/widgets/usb-port-map.vue`
 - [x] Hub type detection fixed — uses connected device depths, not portmap depths
 - [x] Duplicate port bug fixed
-- [ ] Port label positions calibrated in browser
+- [x] Round 2 UI changes applied (2026-06-11)
+- [x] dashboard.js portmapRefImage() updated
+- [ ] Add `rpi34-usb-ports.png` (and `rpi5-usb-ports.png`) to `sensorgnome-control/src/public/`
+- [ ] Port label positions calibrated in browser (PORT_POS['34'] x/y are estimates)
 - [ ] Add to a FlexDash tab in `fd-config.json`
 - [ ] Test with real device data
 - [ ] Optional: server-side USB hub enumeration (vendor/product ID detection)

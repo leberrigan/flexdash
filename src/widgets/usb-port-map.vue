@@ -11,25 +11,33 @@
       <image v-if="imageUrl" :href="imageUrl" x="0" y="0" :width="SVG_W" height="194"/>
       <rect v-else x="0" y="0" :width="SVG_W" height="194" fill="#1F2937" rx="4"/>
 
-      <!-- Coloured overlay covering the white label box for each Pi port -->
+      <!-- Coloured port label — always visible; two lines: port number + type code -->
       <g v-for="(pos, portNum) in portPositions" :key="`p${portNum}`">
         <rect
           :x="pos.x" :y="pos.y" :width="pos.w" :height="pos.h" rx="4"
           :fill="portFill(portNum)"
-          :fill-opacity="devices[portNum] ? 0.90 : 0"
+          fill-opacity="0.88"
         />
         <!-- Red stroke ring on error -->
         <rect v-if="isErr(portNum)"
           :x="pos.x" :y="pos.y" :width="pos.w" :height="pos.h" rx="4"
           fill="none" stroke="#EF4444" stroke-width="2.5"
         />
-        <!-- Device type abbreviation -->
-        <text v-if="devices[portNum]"
-          :x="pos.x + pos.w / 2" :y="pos.y + pos.h / 2 + 1"
+        <!-- Port number (large, upper line) -->
+        <text
+          :x="pos.x + pos.w / 2" :y="pos.y + pos.h * 0.37"
           text-anchor="middle" dominant-baseline="middle"
-          font-size="11" font-weight="bold"
-          fill="white" font-family="'Courier New', Courier, monospace">
-          {{ typeCode(devices[portNum].type) }}
+          font-size="17" font-weight="bold"
+          fill="white" font-family="sans-serif">
+          {{ portNum }}
+        </text>
+        <!-- Device type code (smaller, lower line) — blank when nothing connected -->
+        <text
+          :x="pos.x + pos.w / 2" :y="pos.y + pos.h * 0.72"
+          text-anchor="middle" dominant-baseline="middle"
+          font-size="10" font-weight="bold"
+          fill="rgba(255,255,255,0.85)" font-family="'Courier New', Courier, monospace">
+          {{ portLabel2(portNum) }}
         </text>
       </g>
 
@@ -38,12 +46,16 @@
          :transform="`translate(0, ${PI_H + idx * HUB_H})`">
 
         <line x1="0" y1="1" :x2="SVG_W" y2="1" stroke="#374151" stroke-width="1"/>
-        <text x="10" y="15" font-size="11" font-family="sans-serif" fill="#9CA3AF">
-          ↳ Hub on port {{ hub.piLogicalPort }}
+
+        <!-- Black Pi-port badge showing which Pi port this hub is on -->
+        <rect x="8" y="4" width="36" height="16" rx="3" fill="#111827"/>
+        <text x="26" y="16" text-anchor="middle"
+              font-size="11" font-weight="bold" fill="white" font-family="sans-serif">
+          p{{ hub.piLogicalPort }}
         </text>
 
         <!-- ── D-Link DUB-H7 illustration (7-port hub, depth-4 portmap paths) ── -->
-        <g v-if="hub.type === 'dlink'" transform="translate(10, 20)">
+        <g v-if="hub.type === 'dlink'" transform="translate(10, 24)">
           <!-- Body -->
           <rect x="0" y="0" width="175" height="62" rx="6" fill="#252525"/>
           <!-- Top face (slightly lighter) -->
@@ -54,21 +66,17 @@
                 font-family="sans-serif" letter-spacing="0.3">D-Link  DUB-H7</text>
           <!-- 7 USB-A female port openings -->
           <g v-for="pi in 7" :key="pi" :transform="`translate(${4 + (pi-1)*23}, 35)`">
-            <!-- Port housing -->
             <rect x="0" y="0" width="18" height="22" rx="2" fill="#111"/>
-            <!-- Port cavity -->
             <rect x="2" y="2" width="14" height="15" rx="1" fill="#090909"/>
-            <!-- Plastic tongue inside connector -->
             <rect x="5" y="5" width="8" height="4" fill="#262626"/>
           </g>
           <!-- Power LED -->
           <circle cx="170" cy="57" r="3" fill="#22C55E" opacity="0.85"/>
-          <!-- LED glow -->
           <circle cx="170" cy="57" r="5" fill="#22C55E" opacity="0.15"/>
         </g>
 
         <!-- ── USB Y-splitter illustration (1 male → 2 female) ── -->
-        <g v-else-if="hub.type === 'splitter'" transform="translate(10, 18)">
+        <g v-else-if="hub.type === 'splitter'" transform="translate(10, 22)">
           <!-- USB-A male connector body -->
           <rect x="29" y="0" width="28" height="17" rx="2" fill="#1A1A1A"/>
           <!-- Connector opening / cavity -->
@@ -78,7 +86,7 @@
           <rect x="35" y="9" width="16" height="2.5" fill="#C09000" opacity="0.9"/>
           <!-- Cable strain-relief sleeve -->
           <rect x="39" y="17" width="8" height="3" rx="1" fill="#111"/>
-          <!-- Braided cable stem (chevron pattern) -->
+          <!-- Braided cable stem -->
           <rect x="40" y="20" width="6" height="14" rx="2" fill="#1A1A1A"/>
           <line x1="40" y1="22" x2="46" y2="25" stroke="#2A2A2A" stroke-width="1.2"/>
           <line x1="40" y1="25" x2="46" y2="28" stroke="#2A2A2A" stroke-width="1.2"/>
@@ -89,7 +97,7 @@
           <path d="M43 41 L17 57" stroke="#1A1A1A" stroke-width="7" stroke-linecap="round"/>
           <!-- Right arm cable -->
           <path d="M43 41 L69 57" stroke="#1A1A1A" stroke-width="7" stroke-linecap="round"/>
-          <!-- Cable braiding on arms (light diagonal lines) -->
+          <!-- Cable braiding on arms -->
           <path d="M38 43 L14 57" stroke="#2A2A2A" stroke-width="1.2"/>
           <path d="M48 43 L72 57" stroke="#2A2A2A" stroke-width="1.2"/>
           <!-- Left female USB-A port -->
@@ -103,7 +111,7 @@
         </g>
 
         <!-- ── Generic multi-port hub illustration ── -->
-        <g v-else transform="translate(10, 20)">
+        <g v-else transform="translate(10, 24)">
           <rect x="0" y="0" width="95" height="52" rx="4" fill="#252525"/>
           <rect x="1" y="1" width="93" height="26" rx="3" fill="#303030"/>
           <text x="47" y="17" text-anchor="middle"
@@ -145,7 +153,7 @@
       </g><!-- end hub sections -->
     </svg>
 
-    <!-- Frequency colour legend -->
+    <!-- Colour legend -->
     <div class="d-flex flex-wrap gap-3 px-2 pt-1 pb-1"
          style="font-size:11px; opacity:0.7">
       <span v-for="item in legend" :key="item.label" class="d-flex align-center" style="gap:4px">
@@ -170,28 +178,22 @@ const BOX_W = 44    // hub port box width
 const BOX_H = 44    // hub port box height
 const BOX_GAP = 5   // gap between hub port boxes
 
-// Approximate pixel positions of the white label boxes within each 475×194 PNG.
-// These cover the "1", "2", "3", "4" label boxes printed on the images.
-// Calibrate by overlaying a coloured rect on the image in a browser.
-// NOTE: port numbering in the images uses the LOGICAL port numbers from the portmap.
+// Pixel positions of port label overlays within each 475×194 PNG.
+// Key '34' is the shared RPi 3B/4B image (rpi34-usb-ports.png).
+// Key '5' is the RPi 5 image (rpi5-usb-ports.png).
+// Calibrate x/y in browser dev tools; w/h fixed at 60×55.
 const PORT_POS = {
-  '3': {   // RPi 3B / 3B+: ethernet left, two USB2 pairs on right
-    1: { x: 155, y:   7, w: 40, h: 36 },
-    2: { x: 155, y: 108, w: 40, h: 36 },
-    3: { x: 340, y:   7, w: 40, h: 36 },
-    4: { x: 340, y: 108, w: 40, h: 36 },
+  '34': {  // RPi 3B / 3B+ / 4B shared image
+    1: { x: 220, y:  68, w: 60, h: 55 },
+    2: { x: 220, y: 135, w: 60, h: 55 },
+    3: { x: 375, y:  68, w: 60, h: 55 },
+    4: { x: 375, y: 135, w: 60, h: 55 },
   },
-  '4': {   // RPi 4B: USB2 pair left (3,4), USB3 pair centre (1,2), ethernet right
-    1: { x: 183, y:   7, w: 40, h: 36 },
-    2: { x: 183, y: 108, w: 40, h: 36 },
-    3: { x:  30, y:   7, w: 40, h: 36 },
-    4: { x:  30, y: 108, w: 40, h: 36 },
-  },
-  '5': {   // RPi 5: ethernet left, USB3 pair centre-left (1,2), USB3 pair right (3,4)
-    1: { x: 155, y:   7, w: 40, h: 36 },
-    2: { x: 155, y: 108, w: 40, h: 36 },
-    3: { x: 310, y:   7, w: 40, h: 36 },
-    4: { x: 310, y: 108, w: 40, h: 36 },
+  '5': {   // RPi 5
+    1: { x: 155, y:  30, w: 60, h: 55 },
+    2: { x: 155, y: 105, w: 60, h: 55 },
+    3: { x: 310, y:  30, w: 60, h: 55 },
+    4: { x: 310, y: 105, w: 60, h: 55 },
   },
 }
 
@@ -199,19 +201,19 @@ const PORT_POS = {
 const TYPE_CODES = {
   'rtlsdr':          'RTL',
   'funcubePro':      'FCD',
-  'funcubeProPlus':  'FC+',
-  'airspy':          'ASP',
+  'funcubeProPlus':  'FCD',
+  'airspy':          'AM',
   'airspyhf':        'AHF',
   'CTT/CornellRcvr': 'CTT',
-  'DigiBabel':       'DGB',
-  'NanoBabel':       'NBB',
+  'DigiBabel':       'DBU',
+  'NanoBabel':       'NB',
   'usbAudio':        'AUD',
 }
 
-// Width (px) of each hub illustration + right gap before port boxes begin
+// Width (px) of each hub illustration, used to position the port boxes to its right
 const ILLUST_W = {
   dlink:    195,   // 175px body + 20px margin
-  splitter: 100,   // 86px body + 14px margin
+  splitter: 100,   // ~86px body + 14px margin
   generic:  115,   // 95px body + 20px margin
 }
 
@@ -247,13 +249,14 @@ function parsePortmap(text) {
 export default {
   name: 'UsbPortMap',
 
-  help: `Show RPi USB port layout with connected devices colour-coded by frequency.
+  help: `Show RPi USB port layout with connected devices colour-coded by signal type.
 
 Bind \`devices\` to the \`devices\` topic, \`portmap\` to \`portmap_file\`,
 and \`model_image\` to \`portmap/refimage\`.
 
-Colours: purple = FSK 433/434 MHz, teal = other frequencies, grey = unknown.
-Hub sections are drawn automatically from the portmap topology.`,
+Colours: purple = FSK (433/434 MHz Lotek digital), teal = PPM (VHF Lotek analog),
+grey = other device, black = USB hub.
+Hub sections drawn automatically from portmap topology.`,
 
   props: {
     title: {
@@ -268,8 +271,8 @@ Hub sections are drawn automatically from the portmap topology.`,
       tip: 'portmap file text — bind to `portmap_file`',
     },
     model_image: {
-      type: String, default: '/rpi4-port-numbering.png',
-      tip: 'board port-numbering image URL — bind to `portmap/refimage`',
+      type: String, default: '/rpi34-usb-ports.png',
+      tip: 'board USB port image URL — bind to `portmap/refimage`',
     },
   },
 
@@ -277,22 +280,23 @@ Hub sections are drawn automatically from the portmap topology.`,
     return {
       SVG_W, PI_H, HUB_H, BOX_W, BOX_H, BOX_GAP,
       legend: [
-        { color: '#7C3AED', label: 'FSK 433/434 MHz' },
-        { color: '#0D9488', label: 'Other freq'       },
-        { color: '#6B7280', label: 'Unknown freq'     },
+        { color: '#7C3AED', label: 'FSK'          },
+        { color: '#0D9488', label: 'PPM'          },
+        { color: '#6B7280', label: 'Other device' },
+        { color: '#111827', label: 'USB hub'      },
       ],
     }
   },
 
   computed: {
     piModel() {
-      return (this.model_image || '').match(/rpi(\d+)-port-numbering/)?.[1] || '4'
+      return (this.model_image || '').match(/rpi(\d+)-usb-ports/)?.[1] || '34'
     },
     imageUrl() {
       return this.model_image || null
     },
     portPositions() {
-      return PORT_POS[this.piModel] || PORT_POS['4']
+      return PORT_POS[this.piModel] || PORT_POS['34']
     },
     topology() {
       return parsePortmap(this.portmap)
@@ -318,28 +322,27 @@ Hub sections are drawn automatically from the portmap topology.`,
       // Step 2: for each Pi port with hub devices, build a hub section.
       const hubs = []
       for (const [piPath, connected] of Object.entries(byPiPath)) {
-        // Hub type is determined by the DEEPEST path among connected devices.
-        // This correctly distinguishes:
-        //   depth 4 (e.g. 1.5.4.1) → D-Link (internal hub chip adds an extra hop)
+        // Hub type determined by deepest connected device path:
+        //   depth 4 (e.g. 1.5.4.1) → D-Link (internal chip adds an extra hop)
         //   depth 3 (e.g. 1.5.1)   → generic hub or Y-splitter
         const maxDepth = Math.max(...connected.map(d => d.depth))
-        const type = maxDepth >= 4      ? 'dlink'
+        const type = maxDepth >= 4        ? 'dlink'
                    : connected.length <= 2 ? 'splitter'
-                   :                        'generic'
+                   :                         'generic'
 
-        // Step 3: select only the portmap entries that match the active depth.
-        // This prevents the duplicate-port bug caused by the portmap listing both
-        // depth-3 (generic hub) and depth-4 (D-Link) entries for the same Pi port.
+        // Step 3: select only portmap entries matching the active depth to avoid
+        // duplicates when portmap lists both generic (depth-3) and D-Link (depth-4)
+        // entries for the same Pi port.
         const activeEntries = hubEntries.filter(
           e => e.piPath === piPath && e.depth === maxDepth
         )
 
-        // Step 4: merge portmap entries with actually-connected devices, deduped by logPort.
+        // Step 4: merge portmap entries with connected devices, deduped by logPort.
         const portMap = new Map()
         for (const e of activeEntries) portMap.set(e.logPort, { logicalPort: e.logPort })
         for (const c of connected)     portMap.set(c.logPort, { logicalPort: c.logPort })
 
-        // Sort: 1-9 ascending, then 0 (used for the 10th port in the D-Link portmap)
+        // Sort 1-9 ascending; 0 (D-Link's 10th port alias) sorts last
         const ports = [...portMap.values()].sort((a, b) => {
           const an = a.logicalPort === '0' ? 100 : Number(a.logicalPort)
           const bn = b.logicalPort === '0' ? 100 : Number(b.logicalPort)
@@ -357,24 +360,31 @@ Hub sections are drawn automatically from the portmap topology.`,
   },
 
   methods: {
+    // Returns true when the Pi port has a hub plugged in (not a direct device)
+    isHubPort(portNum) {
+      return this.sortedHubs.some(h => String(h.piLogicalPort) === String(portNum))
+    },
+
     portFill(portNum) {
+      // Pi port with a hub → black
+      if (this.isHubPort(portNum)) return '#111827'
+
       const dev = this.devices[String(portNum)]
-      if (!dev) return '#374151'
+      if (!dev) return '#374151'  // empty
 
       const freq = parseFloat(dev.frequency)
       if (!isNaN(freq) && freq > 0) {
-        return freq > 430 && freq < 436 ? '#7C3AED' : '#0D9488'
+        if (freq > 430 && freq < 436) return '#7C3AED'  // FSK UHF
+        if (freq > 140 && freq < 200) return '#0D9488'  // PPM VHF
+        return '#6B7280'
       }
 
-      // Frequency not yet set — infer from device type as a best-effort fallback.
-      // RTL-SDR / Airspy / FunCube Pro+ → UHF FSK (purple)
-      // FunCube Pro / USB audio         → VHF (teal)
+      // Type-based fallback when frequency not yet reported
       const t = dev.type || ''
       if (t.startsWith('rtlsdr') || t.startsWith('airspy') || t === 'funcubeProPlus')
         return '#7C3AED'
       if (t === 'funcubePro' || t === 'usbAudio')
         return '#0D9488'
-
       return '#6B7280'
     },
 
@@ -382,9 +392,16 @@ Hub sections are drawn automatically from the portmap topology.`,
       return this.devices[String(portNum)]?.state === 'error'
     },
 
+    // Second line of the Pi port label: type code, 'HUB', or blank
+    portLabel2(portNum) {
+      if (this.isHubPort(portNum)) return 'HUB'
+      const dev = this.devices[String(portNum)]
+      return dev ? this.typeCode(dev.type) : ''
+    },
+
     typeCode(type) {
       if (!type) return '???'
-      // Strip trailing tuner info added by rtlsdr/airspy info handlers (e.g. "rtlsdr/R820T2")
+      // Strip trailing tuner info appended by rtlsdr/airspy handlers (e.g. "rtlsdr/R820T2")
       const base = type.split('/')[0]
       return TYPE_CODES[base] || TYPE_CODES[type] || type.slice(0, 3).toUpperCase()
     },
