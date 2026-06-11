@@ -6,7 +6,7 @@
 -->
 
 <template>
-  <div :class="['dynamic-panel', { 'v-card': card, 'v-card--variant-elevated': card }]" :style="card ? {} : { backgroundColor: 'rgba(0,0,0,0)' }">
+  <div :class="['dynamic-panel', { 'v-card': card, 'v-card--variant-elevated': card, 'elevation-0': card }]">
     <dynamic-child
       v-for="(item, ix) in widgets"
       :key="ix"
@@ -24,7 +24,6 @@
   grid-template-columns: repeat(6, 1fr);
   gap: 4px;
   overflow-y: auto;
-  padding: 4px;
   align-content: start;
 }
 .v-card.dynamic-panel {
