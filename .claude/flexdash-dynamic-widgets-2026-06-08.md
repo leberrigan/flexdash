@@ -114,6 +114,30 @@ Three bugs causing auth to fail or show wrong UI:
    in `req.session.save(cb)` so the session file is committed before the 200 is sent.
    This also fixes incognito (where the file write race is more likely to lose).
 
+## Bug fix: bundle hash mismatch + auth reconnect (2026-06-11)
+
+**Symptom:** After `flexdash.html` was rewritten to remove the sg-auth overlay, the Pi had
+`index.e76771dd.js` but the HTML referenced `index.f7268a74.js` (from the dev machine's build).
+The script 404'd; FlexDash never mounted; auth dialog never appeared; page appeared broken.
+Separately: after auth succeeded, content still didn't load because `authDone` only set
+`enabled = true` and relied on the `sockio-settings` watcher which may not be reliable.
+
+**Fixes:**
+1. `flexdash.html`: replaced hardcoded `index.f7268a74.js` and `index.02099a86.css` with
+   `BUNDLE_JS` / `BUNDLE_CSS` placeholders.
+2. `flexdash.js` `start()`: added `Fs.readdirSync(assetsDir)` to detect whichever `index.[hash].js`
+   and `index.[hash].css` are actually present. Stored as `this.bundle_js` / `this.bundle_css`.
+3. `flexdash.js` `sendIndexHtml`: added `.replace('BUNDLE_JS', this.bundle_js)` and
+   `.replace('BUNDLE_CSS', this.bundle_css)` substitutions before serving the HTML.
+4. `connections.vue` `authDone`:
+   - Added `if (typeof ev !== 'string') return` guard against native DOM change events
+     bubbling from child form fields (belt-and-suspenders alongside `emits:['change']`).
+   - Added explicit `c.conn.start(config)` call after `enabled = true`, as a fallback for
+     when the `sockio-settings` watcher doesn't fire (e.g., component not mounted).
+   - Double-start is safe: Vue watcher fires as a microtask before any I/O callbacks, so
+     socket A (from explicit call) is killed by `stop()` before it connects; socket B
+     (from watcher) then connects and receives the full config unimpeded.
+
 ## Status
 - [x] Feature 1: dynamic-panel widget — `src/widgets/dynamic-panel.vue` (new)
 - [x] Feature 2: collapse toggle + `visible` binding — `src/components/widget-wrap.vue` + `src/edit-panels/widget-edit.vue`

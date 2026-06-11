@@ -411,6 +411,9 @@ export default {
     },
 
     authDone(ev) {
+      // Guard against native DOM change events from child form fields bubbling up
+      // before emits:['change'] is declared. Those events are objects, not strings.
+      if (typeof ev !== 'string') return
       console.log("Auth done:", ev)
       this.show_auth = null
       const connName = this.auth_conn
@@ -419,8 +422,13 @@ export default {
       if (ev == 'success') {
         if (!this.gotConfig)
           window.setTimeout(()=>{ if (!this.gotConfig) this.show_dialog = true }, 5000)
-        // Re-enable: the sockio-settings 'config.enabled' watcher calls start() automatically
-        if (connName) this.$config.conn[connName].enabled = true
+        if (connName) {
+          this.$config.conn[connName].enabled = true
+          // The sockio-settings watcher on config.enabled also calls start(), but call
+          // it directly here too as a fallback in case the dialog/component is not mounted.
+          const c = this.connections[connName]
+          if (c?.conn) c.conn.start(this.$config.conn[connName])
+        }
       } else {
         this.show_dialog = !this.gotConfig
       }
