@@ -6,7 +6,7 @@
 -->
 
 <template>
-  <div :class="['dynamic-panel', { 'dp-card': card }]">
+  <div :class="['dynamic-panel', { 'v-card': card }]">
     <dynamic-child
       v-for="(item, ix) in widgets"
       :key="ix"
@@ -27,10 +27,8 @@
   padding: 4px;
   align-content: start;
 }
-.dp-card {
-  border: 1px solid rgba(128, 128, 128, 0.25);
-  border-radius: 4px;
-  padding: 2px;
+.v-card.dynamic-panel {
+  overflow: visible;
 }
 </style>
 
