@@ -38,6 +38,19 @@
 </style>
 
 <script scoped>
+// Recursively search panel and its nested panels for widget_id; returns containing panel_id or null.
+function findWidgetInPanel(store, panel_id, widget_id) {
+  const p = store.widgetByID(panel_id)
+  if (!p || p.kind != "Panel") return null
+  const widgets = p.static?.widgets ?? []
+  if (widgets.includes(widget_id)) return panel_id
+  for (const child_id of widgets) {
+    const found = findWidgetInPanel(store, child_id, widget_id)
+    if (found !== null) return found
+  }
+  return null
+}
+
 export default {
   name: 'WidgetMove',
 
@@ -66,15 +79,15 @@ export default {
         break
       }
     }
-    // if we didn't find it, look in all panels of all grids (ugh)
+    // if we didn't find it, look in all panels of all grids (recursively for nested panels)
     if (!d.grid_id) {
       outer: for (const g_id in this.$config.grids) {
         const g = this.$config.grids[g_id];
         for (const p_id of (g?.widgets ?? [])) {
-          const p = this.$store.widgetByID(p_id)
-          if (p && p.kind == "Panel" && p.static?.widgets?.includes(this.widget_id)) {
+          const found_panel = findWidgetInPanel(this.$store, p_id, this.widget_id)
+          if (found_panel !== null) {
             d.grid_id = g_id
-            d.panel_id = p_id
+            d.panel_id = found_panel
             break outer
           }
         }

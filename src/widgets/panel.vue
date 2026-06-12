@@ -10,7 +10,7 @@
     <component v-for="(w,ix) in real_widgets" :key="w" :widget_id="w" :is="editComponent[w]"
                :ix="ix" :edit_active="ix == edit_ix" :no_border="true"
                @edit="toggleEdit(ix, $event)" @move="moveWidget(ix, $event)"
-               @teleport="teleportWidget" @delete="deleteWidget(ix)" @clone="cloneWidget(ix)">
+               @teleport="(src,dst)=>teleportWidget(w, src, dst)" @delete="deleteWidget(ix)" @clone="cloneWidget(ix)">
     </component>
   </div>
 </template>
