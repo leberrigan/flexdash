@@ -231,8 +231,8 @@ Shows USB ports on the Raspberry Pi and any connected radio receivers, colour-co
 
 | Colour | Meaning |
 |--------|---------|
-| Purple | FSK receiver (433/434 MHz — RTL-SDR, Airspy, FCD+) |
-| Teal   | PPM receiver (VHF 140–200 MHz — FCD, USB audio) |
+| Purple | FSK receiver (433/434 MHz) |
+| Teal   | PPM receiver (166.380, 150.100, 151.500 MHz) |
 | Grey   | Other connected device |
 | Black  | USB hub |
 | White  | Empty port |
