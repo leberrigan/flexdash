@@ -3,169 +3,92 @@
      Copyright ©2024 sensorgnome contributors, MIT license
 -->
 <template>
-  <div class="usb-map d-flex flex-column" style="overflow-x:auto">
+  <div class="usb-map d-flex flex-column w-100">
     <svg :width="SVG_W" :height="svgH" :viewBox="`0 0 ${SVG_W} ${svgH}`"
-         xmlns="http://www.w3.org/2000/svg" style="display:block">
+         xmlns="http://www.w3.org/2000/svg" style="display:block" class="w-100">
 
       <!-- RPi reference image embedded at its natural 475×194 size -->
       <image v-if="imageUrl" :href="imageUrl" x="0" y="0" :width="SVG_W" height="194"/>
       <rect v-else x="0" y="0" :width="SVG_W" height="194" fill="#1F2937" rx="4"/>
 
-      <!-- Coloured port label — always visible; two lines: port number + type code -->
+      <!-- Port label overlays — always visible; white+border if empty, coloured if occupied -->
       <g v-for="(pos, portNum) in portPositions" :key="`p${portNum}`">
         <rect
           :x="pos.x" :y="pos.y" :width="pos.w" :height="pos.h" rx="4"
           :fill="portFill(portNum)"
-          fill-opacity="0.88"
+          :fill-opacity="portEmpty(portNum) ? '1' : '0.88'"
+          :stroke="portEmpty(portNum) ? 'black' : 'none'"
+          :stroke-width="portEmpty(portNum) ? '2' : '0'"
         />
-        <!-- Red stroke ring on error -->
+        <!-- Error ring -->
         <rect v-if="isErr(portNum)"
           :x="pos.x" :y="pos.y" :width="pos.w" :height="pos.h" rx="4"
           fill="none" stroke="#EF4444" stroke-width="2.5"
         />
-        <!-- Port number (large, upper line) -->
+        <!-- Port number -->
         <text
           :x="pos.x + pos.w / 2" :y="pos.y + pos.h * 0.37"
           text-anchor="middle" dominant-baseline="middle"
           font-size="17" font-weight="bold"
-          fill="white" font-family="sans-serif">
+          :fill="portEmpty(portNum) ? '#111827' : 'white'"
+          font-family="sans-serif">
           {{ portNum }}
         </text>
-        <!-- Device type code (smaller, lower line) — blank when nothing connected -->
+        <!-- Type code / HUB / blank -->
         <text
           :x="pos.x + pos.w / 2" :y="pos.y + pos.h * 0.72"
           text-anchor="middle" dominant-baseline="middle"
           font-size="10" font-weight="bold"
-          fill="rgba(255,255,255,0.85)" font-family="'Courier New', Courier, monospace">
+          :fill="portEmpty(portNum) ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.85)'"
+          font-family="'Courier New', Courier, monospace">
           {{ portLabel2(portNum) }}
         </text>
       </g>
 
-      <!-- Hub sections — one per hub group, stacked below the Pi image -->
+      <!-- Hub sections — top-down bezier fan; one section per hub group -->
       <g v-for="(hub, idx) in sortedHubs" :key="`h${hub.piPath}`"
          :transform="`translate(0, ${PI_H + idx * HUB_H})`">
 
         <line x1="0" y1="1" :x2="SVG_W" y2="1" stroke="#374151" stroke-width="1"/>
 
-        <!-- ── D-Link DUB-H7: centered badge + wide hub body + port boxes below ── -->
-        <template v-if="hub.type === 'dlink'">
-          <!-- Centered Pi-port badge above the hub -->
-          <rect :x="(SVG_W - 72) / 2" y="6" width="72" height="24" rx="6" fill="#111827"/>
-          <text :x="SVG_W / 2" y="22" text-anchor="middle"
-                font-size="14" font-weight="bold" fill="white" font-family="sans-serif">
-            P{{ hub.piLogicalPort }}
-          </text>
-          <!-- Wide hub body -->
-          <g transform="translate(17, 35)">
-            <rect x="0" y="0" width="440" height="65" rx="8" fill="#252525"/>
-            <rect x="1" y="1" width="438" height="34" rx="7" fill="#303030"/>
-            <text x="220" y="22" text-anchor="middle"
-                  fill="#555" font-size="11" font-weight="bold"
-                  font-family="sans-serif" letter-spacing="0.5">D-Link  DUB-H7</text>
-            <!-- 7 USB-A port openings, evenly spaced -->
-            <g v-for="pi in 7" :key="pi" :transform="`translate(${4 + (pi-1)*60}, 36)`">
-              <rect x="0" y="0" width="55" height="26" rx="2" fill="#111"/>
-              <rect x="2" y="2" width="51" height="17" rx="1" fill="#090909"/>
-              <rect x="11" y="5" width="29" height="5" fill="#262626"/>
-            </g>
-            <!-- Power LED -->
-            <circle cx="433" cy="59" r="4" fill="#22C55E" opacity="0.85"/>
-            <circle cx="433" cy="59" r="6" fill="#22C55E" opacity="0.15"/>
-          </g>
-          <!-- Port boxes centred below the hub -->
-          <g :transform="`translate(${(SVG_W - hub.ports.length * (BOX_W + BOX_GAP) + BOX_GAP) / 2}, 106)`">
-            <g v-for="(hp, hi) in hub.ports" :key="hp.logicalPort"
-               :transform="`translate(${hi * (BOX_W + BOX_GAP)}, 0)`">
-              <rect x="0" y="0" :width="BOX_W" :height="BOX_H" rx="4"
-                    :fill="portFill(hp.logicalPort)"
-                    :fill-opacity="devices[hp.logicalPort] ? 0.90 : 0.22"/>
-              <rect v-if="isErr(hp.logicalPort)"
-                    x="0" y="0" :width="BOX_W" :height="BOX_H" rx="4"
-                    fill="none" stroke="#EF4444" stroke-width="2"/>
-              <text :x="BOX_W/2" y="14" text-anchor="middle"
-                    font-size="9" fill="rgba(255,255,255,0.6)" font-family="sans-serif">
-                p{{ hp.logicalPort }}
-              </text>
-              <text :x="BOX_W/2" y="32" text-anchor="middle"
-                    font-size="11" font-weight="bold"
-                    fill="white" font-family="'Courier New', Courier, monospace">
-                {{ devices[hp.logicalPort] ? typeCode(devices[hp.logicalPort].type) : '' }}
-              </text>
-            </g>
-          </g>
-        </template>
+        <!-- Input badge: same size and style as Pi port labels -->
+        <rect :x="(SVG_W - BOX_W) / 2" y="5" :width="BOX_W" :height="BOX_H" rx="4" fill="#111827"/>
+        <text :x="SVG_W / 2" :y="5 + BOX_H * 0.37" text-anchor="middle" dominant-baseline="middle"
+              font-size="17" font-weight="bold" fill="white" font-family="sans-serif">
+          {{ hub.piLogicalPort }}
+        </text>
+        <text :x="SVG_W / 2" :y="5 + BOX_H * 0.72" text-anchor="middle" dominant-baseline="middle"
+              font-size="10" font-weight="bold" fill="rgba(255,255,255,0.85)"
+              font-family="'Courier New', Courier, monospace">HUB</text>
 
-        <!-- ── USB Y-splitter: schematic diagram ── -->
-        <template v-else-if="hub.type === 'splitter'">
-          <!-- Input node (Pi port) -->
-          <rect x="12" y="22" width="58" height="32" rx="6" fill="#111827"/>
-          <text x="41" y="42" text-anchor="middle"
-                font-size="14" font-weight="bold" fill="white" font-family="sans-serif">
-            p{{ hub.piLogicalPort }}
-          </text>
-          <!-- Bezier curves + port boxes, vertically spread -->
-          <g v-for="(hp, hi) in hub.ports" :key="hp.logicalPort">
-            <path :d="splitterCurve(hi)" stroke="#4B5563" stroke-width="2.5" fill="none"/>
-            <g :transform="`translate(370, ${18 + hi * 69})`">
-              <rect x="0" y="0" :width="BOX_W" :height="BOX_H" rx="4"
-                    :fill="portFill(hp.logicalPort)"
-                    :fill-opacity="devices[hp.logicalPort] ? 0.90 : 0.22"/>
-              <rect v-if="isErr(hp.logicalPort)"
-                    x="0" y="0" :width="BOX_W" :height="BOX_H" rx="4"
-                    fill="none" stroke="#EF4444" stroke-width="2"/>
-              <text :x="BOX_W/2" y="14" text-anchor="middle"
-                    font-size="9" fill="rgba(255,255,255,0.6)" font-family="sans-serif">
-                p{{ hp.logicalPort }}
-              </text>
-              <text :x="BOX_W/2" y="32" text-anchor="middle"
-                    font-size="11" font-weight="bold"
-                    fill="white" font-family="'Courier New', Courier, monospace">
-                {{ devices[hp.logicalPort] ? typeCode(devices[hp.logicalPort].type) : '' }}
-              </text>
-            </g>
+        <!-- Bezier curves + port boxes, fanning downward -->
+        <g v-for="(hp, hi) in hub.ports" :key="hp.logicalPort">
+          <path :d="hubBezierPath(hi, hub.ports.length)" stroke="#4B5563" stroke-width="2" fill="none"/>
+          <g :transform="`translate(${hubBoxX(hi, hub.ports.length)}, 90)`">
+            <rect x="0" y="0" :width="BOX_W" :height="BOX_H" rx="4"
+                  :fill="devices[hp.logicalPort] ? portFill(hp.logicalPort) : '#FFFFFF'"
+                  :fill-opacity="devices[hp.logicalPort] ? '0.88' : '1'"
+                  :stroke="devices[hp.logicalPort] ? 'none' : 'black'"
+                  :stroke-width="devices[hp.logicalPort] ? '0' : '2'"/>
+            <rect v-if="isErr(hp.logicalPort)"
+                  x="0" y="0" :width="BOX_W" :height="BOX_H" rx="4"
+                  fill="none" stroke="#EF4444" stroke-width="2"/>
+            <!-- Port number -->
+            <text :x="BOX_W / 2" :y="BOX_H * 0.37" text-anchor="middle" dominant-baseline="middle"
+                  font-size="17" font-weight="bold"
+                  :fill="devices[hp.logicalPort] ? 'white' : '#111827'"
+                  font-family="sans-serif">
+              {{ hp.logicalPort }}
+            </text>
+            <!-- Type code -->
+            <text :x="BOX_W / 2" :y="BOX_H * 0.72" text-anchor="middle" dominant-baseline="middle"
+                  font-size="10" font-weight="bold"
+                  :fill="devices[hp.logicalPort] ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.6)'"
+                  font-family="'Courier New', Courier, monospace">
+              {{ devices[hp.logicalPort] ? typeCode(devices[hp.logicalPort].type) : '' }}
+            </text>
           </g>
-        </template>
-
-        <!-- ── Generic multi-port hub ── -->
-        <template v-else>
-          <rect x="8" y="4" width="36" height="16" rx="3" fill="#111827"/>
-          <text x="26" y="16" text-anchor="middle"
-                font-size="11" font-weight="bold" fill="white" font-family="sans-serif">
-            p{{ hub.piLogicalPort }}
-          </text>
-          <g transform="translate(10, 24)">
-            <rect x="0" y="0" width="95" height="52" rx="4" fill="#252525"/>
-            <rect x="1" y="1" width="93" height="26" rx="3" fill="#303030"/>
-            <text x="47" y="17" text-anchor="middle"
-                  fill="#666" font-size="9" font-family="sans-serif">USB Hub</text>
-            <g v-for="pi in 4" :key="pi" :transform="`translate(${4 + (pi-1)*22}, 29)`">
-              <rect x="0" y="0" width="17" height="18" rx="2" fill="#111"/>
-              <rect x="2" y="2" width="13" height="11" rx="1" fill="#090909"/>
-              <rect x="5" y="4" width="7" height="3" fill="#222"/>
-            </g>
-            <circle cx="90" cy="48" r="2.5" fill="#22C55E" opacity="0.8"/>
-          </g>
-          <g :transform="`translate(${hubIllustW(hub.type) + 18}, 20)`">
-            <g v-for="(hp, hi) in hub.ports" :key="hp.logicalPort"
-               :transform="`translate(${hi * (BOX_W + BOX_GAP)}, 0)`">
-              <rect x="0" y="0" :width="BOX_W" :height="BOX_H" rx="4"
-                    :fill="portFill(hp.logicalPort)"
-                    :fill-opacity="devices[hp.logicalPort] ? 0.90 : 0.22"/>
-              <rect v-if="isErr(hp.logicalPort)"
-                    x="0" y="0" :width="BOX_W" :height="BOX_H" rx="4"
-                    fill="none" stroke="#EF4444" stroke-width="2"/>
-              <text :x="BOX_W/2" y="14" text-anchor="middle"
-                    font-size="9" fill="rgba(255,255,255,0.6)" font-family="sans-serif">
-                p{{ hp.logicalPort }}
-              </text>
-              <text :x="BOX_W/2" y="32" text-anchor="middle"
-                    font-size="11" font-weight="bold"
-                    fill="white" font-family="'Courier New', Courier, monospace">
-                {{ devices[hp.logicalPort] ? typeCode(devices[hp.logicalPort].type) : '' }}
-              </text>
-            </g>
-          </g>
-        </template>
+        </g>
 
       </g><!-- end hub sections -->
     </svg>
@@ -188,15 +111,15 @@
 </style>
 
 <script>
-const SVG_W = 475
-const PI_H  = 194
-const HUB_H = 155   // vertical space per hub section (sized for D-Link layout)
-const BOX_W = 44    // hub port box width
-const BOX_H = 44    // hub port box height
-const BOX_GAP = 5   // gap between hub port boxes
+const SVG_W   = 475
+const PI_H    = 194
+const HUB_H   = 155   // height per hub section (badge 60px + curves 30px + boxes 55px + margins)
+const BOX_W   = 60    // port box width — same as Pi port label overlays
+const BOX_H   = 55    // port box height — same as Pi port label overlays
+const BOX_GAP = 5     // gap between port boxes
 
 // Pixel positions of port label overlays within each 475×194 board image.
-// RPi 3 and 4 have separate images — Ethernet is on opposite sides.
+// RPi 3 and 4 have separate images — their Ethernet ports are on opposite sides.
 // Calibrate x/y in browser dev tools; w/h are fixed at 60×55.
 const PORT_POS = {
   '3': {   // RPi 3B / 3B+: calibrated against rpi3-usb-ports.png
@@ -219,7 +142,6 @@ const PORT_POS = {
   },
 }
 
-// 2–3-letter abbreviations for known device types
 const TYPE_CODES = {
   'rtlsdr':          'RTL',
   'funcubePro':      'FCD',
@@ -230,11 +152,6 @@ const TYPE_CODES = {
   'DigiBabel':       'DBU',
   'NanoBabel':       'NB',
   'usbAudio':        'AUD',
-}
-
-// Width (px) of each hub illustration — used to position generic hub port boxes
-const ILLUST_W = {
-  generic: 115,   // 95px body + 20px margin
 }
 
 function parsePortmap(text) {
@@ -262,9 +179,8 @@ export default {
 Bind \`devices\` to the \`devices\` topic, \`portmap\` to \`portmap_file\`,
 and \`model_image\` to \`portmap/refimage\`.
 
-Colours: purple = FSK (433/434 MHz Lotek digital), teal = PPM (VHF Lotek analog),
-grey = other device, black = USB hub.
-Hub sections drawn automatically from portmap topology.`,
+Colours: purple = FSK (433/434 MHz), teal = PPM (VHF), grey = other, black = hub.
+Empty ports are shown as white with a black border.`,
 
   props: {
     title:    { type: String, default: 'USB Port Map' },
@@ -343,10 +259,15 @@ Hub sections drawn automatically from portmap topology.`,
       return this.sortedHubs.some(h => String(h.piLogicalPort) === String(portNum))
     },
 
+    // True when a Pi port has neither a hub nor a direct device connected
+    portEmpty(portNum) {
+      return !this.devices[String(portNum)] && !this.isHubPort(portNum)
+    },
+
     portFill(portNum) {
       if (this.isHubPort(portNum)) return '#111827'
       const dev = this.devices[String(portNum)]
-      if (!dev) return '#374151'
+      if (!dev) return '#FFFFFF'
       const freq = parseFloat(dev.frequency)
       if (!isNaN(freq) && freq > 0) {
         if (freq > 430 && freq < 436) return '#7C3AED'
@@ -377,19 +298,20 @@ Hub sections drawn automatically from portmap topology.`,
       return TYPE_CODES[base] || TYPE_CODES[type] || type.slice(0, 3).toUpperCase()
     },
 
-    hubIllustW(type) {
-      return ILLUST_W[type] || ILLUST_W.generic
+    // X position of hub port box i (left edge) given total number of boxes
+    hubBoxX(portIdx, totalPorts) {
+      const totalW = totalPorts * (BOX_W + BOX_GAP) - BOX_GAP
+      return Math.round((SVG_W - totalW) / 2) + portIdx * (BOX_W + BOX_GAP)
     },
 
-    // Cubic bezier from input badge to a vertically-arranged port box.
-    // portIdx 0 = upper box, 1 = lower; box tops at 18 + portIdx*69.
-    splitterCurve(portIdx) {
-      const sx = 70, sy = 38
-      const ex = 370
-      const ey = 18 + portIdx * 69 + BOX_H / 2
-      const cx1 = sx + (ex - sx) * 0.4
-      const cx2 = ex - (ex - sx) * 0.3
-      return `M ${sx} ${sy} C ${cx1} ${sy} ${cx2} ${ey} ${ex} ${ey}`
+    // Cubic bezier from the input badge bottom-center down to port box top-center
+    hubBezierPath(portIdx, totalPorts) {
+      const sx = SVG_W / 2                           // badge bottom-center x
+      const sy = 5 + BOX_H                           // badge bottom y = 60
+      const ex = this.hubBoxX(portIdx, totalPorts) + BOX_W / 2  // box top-center x
+      const ey = 90                                  // box top y
+      const cy = (sy + ey) / 2                      // control point y = 75
+      return `M ${sx} ${sy} C ${sx} ${cy} ${ex} ${cy} ${ex} ${ey}`
     },
   },
 }

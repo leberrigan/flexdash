@@ -25,7 +25,7 @@
 
       <!-- Widget title & buttons shown when the child component does _not_ show the title -->
       <v-card-text v-if="!has_title && title"
-                   class="flex-grow-0 flex-shrink-0 px-0 pt-1 pb-0 mb-n1">
+                   class="flex-grow-0 flex-shrink-0 px-0 pt-1 pb-1 mb-n1">
         <!-- title and edit button -->
         <span v-if="title" class="mx-auto text-no-wrap">{{title}}</span>
         <v-btn v-if="canEdit" density="compact" flat class="edit-btn" @click="handleEdit">
@@ -71,7 +71,7 @@
         <v-card :color="color" class="u-tooltip-attach">
           <!-- Widget title & collapse button -->
           <v-card-text v-if="!has_title && title"
-                      class="flex-grow-0 flex-shrink-0 px-0 pt-1 pb-0 mb-n1">
+                      class="flex-grow-0 flex-shrink-0 px-0 pt-1 pb-1 mb-n1">
             <span v-if="title" class="mx-auto text-no-wrap">{{title}}</span>
           </v-card-text>
           <v-btn density="compact" flat class="full-page-btn" @click="toggleFullPage">
