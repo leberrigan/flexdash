@@ -3,7 +3,7 @@
      Copyright ©2024 sensorgnome contributors, MIT license
 -->
 <template>
-  <div class="usb-map d-flex flex-column w-100">
+  <div class="usb-map d-flex flex-column w-100" style="position:relative">
     <svg :width="SVG_W" :height="svgH" :viewBox="`0 0 ${SVG_W} ${svgH}`"
          xmlns="http://www.w3.org/2000/svg" style="display:block" class="w-100">
 
@@ -103,6 +103,23 @@
       </g><!-- end hub sections -->
     </svg>
 
+    <!-- Info button -->
+    <button class="usb-info-btn" @click="show_info=true" title="About this widget">i</button>
+
+    <!-- Info dialog -->
+    <v-dialog v-model="show_info" width="60%" max-width="80ex">
+      <v-card class="d-flex flex-column">
+        <v-card-title class="d-flex align-baseline">
+          <span>USB Port Map</span>
+          <v-spacer/>
+          <v-btn elevation="0" icon @click="show_info=false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+        <v-card-text>
+          <md class="pt-1" style="width:100%">{{ info_text }}</md>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
     <!-- Colour legend -->
     <div class="d-flex flex-wrap gap-3 px-2 pt-1 pb-1"
          style="font-size:11px; opacity:0.7; gap:12px;">
@@ -118,9 +135,33 @@
 
 <style scoped>
 .usb-map { width: 100%; }
+.usb-info-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(17, 24, 39, 0.65);
+  color: white;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  font-size: 13px;
+  font-style: italic;
+  font-weight: bold;
+  font-family: Georgia, serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  z-index: 1;
+}
+.usb-info-btn:hover { background: rgba(17, 24, 39, 0.9); }
 </style>
 
 <script>
+import md from '/src/components/md.vue'
+
 const SVG_W   = 475
 const PI_H    = 194
 const HUB_H   = 155   // height per hub section (badge 60px + curves 30px + boxes 55px + margins)
@@ -181,8 +222,34 @@ function parsePortmap(text) {
   return { piPorts, hubEntries }
 }
 
+const DEFAULT_INFO = `\
+## USB Port Map
+
+Shows USB ports on the Raspberry Pi and any connected radio receivers, colour-coded by signal type.
+
+### Colour legend
+
+| Colour | Meaning |
+|--------|---------|
+| Purple | FSK receiver (433/434 MHz — RTL-SDR, Airspy, FCD+) |
+| Teal   | PPM receiver (VHF 140–200 MHz — FCD, USB audio) |
+| Grey   | Other connected device |
+| Black  | USB hub |
+| White  | Empty port |
+
+A **red ring** around a port indicates the device is in an error state.
+
+### Hub sections
+
+When a USB hub is connected to a Pi port, a diagram below the board image shows the hub's
+downstream ports and their connected devices, using the same colour coding.
+Each hub section is headed by the Pi port number it is plugged into.
+`
+
 export default {
   name: 'UsbPortMap',
+
+  components: { md },
 
   help: `Show RPi USB port layout with connected devices colour-coded by signal type.
 
@@ -200,11 +267,14 @@ Empty ports are shown as white with a black border.`,
                 tip: 'portmap file text — bind to `portmap_file`' },
     model_image: { type: String, default: '/rpi4-usb-ports.png',
                    tip: 'board USB port image URL — bind to `portmap/refimage`' },
+    info_text:   { type: String, default: DEFAULT_INFO,
+                   tip: 'markdown shown in the info popup (ⓘ button)' },
   },
 
   data() {
     return {
       SVG_W, PI_H, HUB_H, BOX_W, BOX_H, BOX_GAP,
+      show_info: false,
       legend: [
         { color: '#7C3AED', label: 'FSK'          },
         { color: '#0D9488', label: 'PPM'          },

@@ -91,7 +91,7 @@
             </v-btn>
           </v-card-title>
           <v-card-text class="flex-grow-1 height100">
-            <v-textarea hide-details
+            <v-textarea class="v-textarea" hide-details
                 :model-value="modelValue||info.default"
                 @update:modelValue="handleEdit('static', $event)">
             </v-textarea>

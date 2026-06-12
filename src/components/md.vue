@@ -18,6 +18,9 @@
 :deep(ol) { margin: 8px 0px 4px; }
 :deep(p) { margin: 8px 0px 4px; }
 :deep(img) { width: 100%; }
+:deep(table) { border-collapse: collapse; margin: 8px 0; }
+:deep(th), :deep(td) { border: 1px solid rgba(0,0,0,0.2); padding: 3px 8px; text-align: left; vertical-align: top; }
+:deep(th) { font-weight: 700; }
 </style>
 
 <script>
@@ -99,15 +102,26 @@ function tfmarkdown(md, disableHtml) {
 
   // Simple (non-markdown) tables
   md = md.replace(/^(\|.*\n)+/gm, function(a) {
-    var rows = a.split(/\n/g);
-    var out = ['<table>']
-    for (var i=0; i<rows.length; i++) {
+    var rows = a.split(/\n/g).filter(function(r) { return r.trim(); });
+    // Detect standard markdown separator row (e.g. |---|---|)
+    var sepIdx = -1;
+    for (var s = 0; s < rows.length; s++) {
+      var cells = rows[s].split(/\|/g).slice(1);
+      // drop trailing empty cell produced by trailing |
+      if (cells.length > 0 && !cells[cells.length-1].trim()) cells = cells.slice(0, -1);
+      if (cells.length > 0 && cells.every(function(c) { return /^[\s:-]+$/.test(c); })) {
+        sepIdx = s; break;
+      }
+    }
+    var out = ['<table>'];
+    for (var i = 0; i < rows.length; i++) {
+      if (i === sepIdx) continue; // skip separator row
+      var tag = (sepIdx > 0 && i < sepIdx) ? 'th' : 'td';
       out.push('<tr>');
       var cols = rows[i].split(/\|/g);
-      for (var j=1; j<cols.length; j++) {
-        out.push('<td>');
-        out.push(cols[j]);
-        out.push('</td>');
+      for (var j = 1; j < cols.length; j++) {
+        if (j === cols.length - 1 && !cols[j].trim()) break; // skip trailing empty cell
+        out.push('<' + tag + '>' + cols[j] + '</' + tag + '>');
       }
       out.push('</tr>');
     }
