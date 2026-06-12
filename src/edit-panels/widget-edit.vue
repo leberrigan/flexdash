@@ -29,7 +29,7 @@
         <!-- Widget proper -->
         <widget-wrap :config="widget" :no_border="no_border" :editable="editable"
                      :ref="props.ref" @edit="toggleEdit" @collapse="handleCollapse"
-                     :color="edit_active?'highlight':''">
+                     :color="edit_active ? 'highlight' : (widget.static?.color || '')">
         </widget-wrap>
         <div v-if="global.editMode" class="ix">#{{ix+1}}</div>
       </template>

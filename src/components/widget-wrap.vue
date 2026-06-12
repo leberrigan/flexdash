@@ -8,7 +8,6 @@
 
 <template>
   <v-card :color="color"
-          :style="card_style"
           :elevation="no_border ? 0 : undefined"
           :outlined="no_border && canEdit">
 
@@ -186,10 +185,6 @@ export default {
 
     canEdit() { return this.global.editMode && this.editable },
     isPanel() { return this.config.kind == "Panel" },
-    card_style() {
-      const bg = this.config?.static?.background_color
-      return bg ? { backgroundColor: bg } : {}
-    },
 
     // child_props holds a description of the properties of the child component, this is used to
     // convert types and raise warning messages. (Note that this is not reactive in the component

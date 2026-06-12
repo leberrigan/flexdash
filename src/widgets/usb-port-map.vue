@@ -11,6 +11,11 @@
       <image v-if="imageUrl" :href="imageUrl" x="0" y="0" :width="SVG_W" height="194"/>
       <rect v-else x="0" y="0" :width="SVG_W" height="194" fill="#1F2937" rx="4"/>
 
+      <!-- Board section label -->
+      <rect x="4" y="4" width="125" height="20" rx="2" fill="white" stroke="#111827" stroke-width="1.5"/>
+      <text x="10" y="14" dominant-baseline="middle" font-size="12" font-weight="bold"
+            fill="#111827" font-family="'Courier New', Courier, monospace">RPi {{ piModel }} port map</text>
+
       <!-- Port label overlays — always visible; white+border if empty, coloured if occupied -->
       <g v-for="(pos, portNum) in portPositions" :key="`p${portNum}`">
         <rect
@@ -38,7 +43,7 @@
         <text
           :x="pos.x + pos.w / 2" :y="pos.y + pos.h * 0.72"
           text-anchor="middle" dominant-baseline="middle"
-          font-size="10" font-weight="bold"
+          font-size="14" font-weight="bold"
           :fill="portEmpty(portNum) ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.85)'"
           font-family="'Courier New', Courier, monospace">
           {{ portLabel2(portNum) }}
@@ -51,6 +56,11 @@
 
         <line x1="0" y1="1" :x2="SVG_W" y2="1" stroke="#374151" stroke-width="1"/>
 
+        <!-- Hub section label -->
+        <rect x="4" y="2" width="135" height="20" rx="2" fill="white" stroke="#111827" stroke-width="1.5"/>
+        <text x="10" y="12" dominant-baseline="middle" font-size="12" font-weight="bold"
+              fill="#111827" font-family="'Courier New', Courier, monospace">USB hub port map</text>
+
         <!-- Input badge: same size and style as Pi port labels -->
         <rect :x="(SVG_W - BOX_W) / 2" y="5" :width="BOX_W" :height="BOX_H" rx="4" fill="#111827"/>
         <text :x="SVG_W / 2" :y="5 + BOX_H * 0.37" text-anchor="middle" dominant-baseline="middle"
@@ -58,7 +68,7 @@
           {{ hub.piLogicalPort }}
         </text>
         <text :x="SVG_W / 2" :y="5 + BOX_H * 0.72" text-anchor="middle" dominant-baseline="middle"
-              font-size="10" font-weight="bold" fill="rgba(255,255,255,0.85)"
+              font-size="14" font-weight="bold" fill="rgba(255,255,255,0.85)"
               font-family="'Courier New', Courier, monospace">HUB</text>
 
         <!-- Bezier curves + port boxes, fanning downward -->
@@ -82,7 +92,7 @@
             </text>
             <!-- Type code -->
             <text :x="BOX_W / 2" :y="BOX_H * 0.72" text-anchor="middle" dominant-baseline="middle"
-                  font-size="10" font-weight="bold"
+                  font-size="14" font-weight="bold"
                   :fill="devices[hp.logicalPort] ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.6)'"
                   font-family="'Courier New', Courier, monospace">
               {{ devices[hp.logicalPort] ? typeCode(devices[hp.logicalPort].type) : '' }}
@@ -95,7 +105,7 @@
 
     <!-- Colour legend -->
     <div class="d-flex flex-wrap gap-3 px-2 pt-1 pb-1"
-         style="font-size:11px; opacity:0.7">
+         style="font-size:11px; opacity:0.7; gap:12px;">
       <span v-for="item in legend" :key="item.label" class="d-flex align-center" style="gap:4px">
         <svg width="12" height="12" style="flex-shrink:0">
           <rect width="12" height="12" rx="2" :fill="item.color"/>
@@ -149,7 +159,7 @@ const TYPE_CODES = {
   'airspy':          'AM',
   'airspyhf':        'AHF',
   'CTT/CornellRcvr': 'CTT',
-  'DigiBabel':       'DBU',
+  'DigiBabel':       'DB',
   'NanoBabel':       'NB',
   'usbAudio':        'AUD',
 }
@@ -295,7 +305,10 @@ Empty ports are shown as white with a black border.`,
     typeCode(type) {
       if (!type) return '???'
       const base = type.split('/')[0]
-      return TYPE_CODES[base] || TYPE_CODES[type] || type.slice(0, 3).toUpperCase()
+      const baseLc = base.toLowerCase()
+      return TYPE_CODES[base]
+        || Object.entries(TYPE_CODES).find(([k]) => k.toLowerCase() === baseLc)?.[1]
+        || type.slice(0, 3).toUpperCase()
     },
 
     // X position of hub port box i (left edge) given total number of boxes
