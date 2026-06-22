@@ -3,7 +3,7 @@
 -->
 <template>
   <div class="pushbutton d-flex align-center justify-center">
-    <v-btn variant="elevated" class="ma-auto" max-width="95%"
+    <v-btn class="ma-auto" max-width="95%"
            density="default"
            v-bind="bindings" @click="clickEv($event)">
       <v-icon :large="!title" v-if="icon" :icon=icon />
@@ -24,6 +24,7 @@ Icon names can be found at https://materialdesignicons.com.`,
   props: {
     enabled: { default: true },
     color: { default: "primary" },
+    variant: { default: "elevated", tip: "Vuetify button variant: elevated, flat, tonal, outlined, text, plain" },
     output_value: { default: 25, tip: "value sent on click" },
     icon: { default: null, tip: "material-design-icon name w/mdi- prefix" },
     title: { default: 'Button' },
@@ -36,6 +37,7 @@ Icon names can be found at https://materialdesignicons.com.`,
     bindings() { return {
       disabled: !this.enabled,
       color: this.color,
+      variant: this.variant,
     }},
 
   },

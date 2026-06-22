@@ -17,6 +17,7 @@
 
 <style scoped>
 .dynamic-panel {
+  position: relative;
   width: 100%;
   flex-grow: 1;
   min-height: 0;
@@ -95,13 +96,15 @@ const DynamicChild = {
     const config = this.config || {}
     const cols = config.cols || 1
     const hasTitle = 'title' in config
+    const isFloat = config.float_position === 'top-right'
     const children = [
       hasTitle && h('div', { class: 'text-caption text-center px-1 pt-1 flex-shrink-0' }, config.title),
       h(comp, this.bindings),
     ].filter(Boolean)
-    return h('div', { style: { gridColumn: `span ${cols}`, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' } },
-      children
-    )
+    const style = isFloat
+      ? { position: 'absolute', top: '2px', right: '2px', zIndex: 2 }
+      : { gridColumn: `span ${cols}`, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }
+    return h('div', { style }, children)
   },
 }
 

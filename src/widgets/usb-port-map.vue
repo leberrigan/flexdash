@@ -223,9 +223,7 @@ function parsePortmap(text) {
 }
 
 const DEFAULT_INFO = `\
-## USB Port Map
-
-Shows USB ports on the Raspberry Pi and any connected radio receivers, colour-coded by signal type.
+Shows USB ports on the Raspberry Pi and any connected radio dongles, colour-coded by signal type.
 
 ### Colour legend
 
