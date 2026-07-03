@@ -1,4 +1,4 @@
-<!-- PopupButton - Button to pop-up a markdown text panel
+<!-- PopupButton - Button to pop-up a markdown text panel and/or a list of child widgets
      Copyright ©2021 Thorsten von Eicken, MIT license, see LICENSE file
 -->
 <template>
@@ -7,7 +7,7 @@
       <v-icon :large="!title"  v-if="icon">mdi-{{icon}}</v-icon> <span>{{ title }}</span>
     </v-btn>
 
-    <!-- dialog box to view the widget's pop-up text full-page -->
+    <!-- dialog box to view the widget's pop-up text and/or widgets full-page -->
     <v-dialog v-model="show_popup" width="80%" max-width="100ex">
       <v-card class="d-flex flex-column height100">
         <v-card-title class="d-flex align-baseline width100">
@@ -18,7 +18,8 @@
           </v-btn>
         </v-card-title>
         <v-card-text class="flex-grow-1">
-          <md class="pt-1" style="width:100%">{{text}}</md>
+          <md v-if="text" class="pt-1" style="width:100%">{{text}}</md>
+          <dynamic-panel v-if="widgets.length" :widgets="widgets" />
         </v-card-text>
       </v-card>
     </v-dialog>
@@ -28,20 +29,23 @@
 
 <script scoped>
 import md from '/src/components/md.vue'
+import DynamicPanel from './dynamic-panel.vue'
 
 export default {
   name: 'PopupButton',
 
-  components: { md },
+  components: { md, DynamicPanel },
 
-  help: `Button to pop-up a markdown text panel.
-Pressing the button pops-up a markdown panel, useful for help or other information.
+  help: `Button to pop-up a markdown text panel and/or a list of child widgets.
+Pressing the button pops-up a panel, useful for help/info text or for grouping controls
+(e.g. a "Config" button that reveals a set of related settings widgets).
 The button may contain an icon and/or a title string and is centered in the widget.`,
 
   props: {
     enabled: { default: true },
     color: { default: "primary" },
     text: { default: "", tip: "markdown text to show in pop-up" },
+    widgets: { type: Array, default: () => [], tip: "child widget configs to show in pop-up, same format as DynamicPanel's widgets prop" },
     icon: { default: null, tip: "material-design-icon name" },
     title: { default: 'Info' },
   },
