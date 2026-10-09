@@ -1,18 +1,18 @@
 // palette-loader -- load widgets and grids dynamically
 // Copyright ©2021 Thorsten von Eicken, MIT license, see LICENSE file
 
-import { shallowReactive } from "vue"
+import { reactive, shallowReactive } from "vue"
 
 // use Vite's module glob import to load widgets and grids
 export default function (app) {
-  const palette = {
+  const palette = reactive({
     widgets: shallowReactive({}),
     grids: shallowReactive({}),
     components: shallowReactive({}),
     count: 0,
     loaded: false,
     errors: [],
-  }
+  })
 
   function module_list(mm) {
     return Object.keys(mm)
