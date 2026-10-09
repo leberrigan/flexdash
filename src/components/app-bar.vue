@@ -19,7 +19,7 @@
     <div class="version d-flex">alpha v{{version}}</div>
 
     <!-- Tabs -->
-    <v-tabs stacked color="primary" v-if="ready && !mobile"
+    <v-tabs stacked color="primary" v-if="ready && !mobile && !one_page"
             style="min-width: 300px;" height="48"
             :modelValue="tab_ix" @update:modelValue="$emit('update:tab_ix', $event)">
       <v-tab v-for="(tid, ix) in dash_tabs" :key="tid" :value="ix" :id="'tab-'+tid">
@@ -56,7 +56,9 @@
                  @ctrlMessage="$emit('ctrlMessage', $event)" />
 
     <!-- Settings icon and menu at far right -->
-    <settings-menu :theme="theme" @update:theme="$emit('update:theme', $event)" v-if="ready" />
+    <settings-menu :theme="theme" @update:theme="$emit('update:theme', $event)"
+                   :one_page="one_page" @update:one_page="$emit('update:one_page', $event)"
+                   v-if="ready" />
   </v-app-bar>
 
   <!-- Navigation drawer opening from the left on small devices to show tabs -->
@@ -117,9 +119,10 @@ export default {
     title: { type: String, default: "FlexDash" },
     tab_ix: null, // which tab we're on
     theme: { type: String, default: "" },
+    one_page: { type: Boolean, default: false }, // display all tabs stacked on one page
   },
 
-  emits: [ 'update:tab_ix', 'update:theme', 'update:config_src', 'ctrlMessage' ],
+  emits: [ 'update:tab_ix', 'update:theme', 'update:one_page', 'update:config_src', 'ctrlMessage' ],
 
   data() { return {
     sidebar: false, // initially disabled

@@ -20,10 +20,15 @@
                   :modelValue="theme" @update:modelValue="$emit('update:theme', $event)">
         </v-switch>
       </v-list-item>
+      <v-list-item>
+        <v-switch hide-details inset color="primary" label="1-Page"
+                  :modelValue="one_page" @update:modelValue="$emit('update:one_page', $event)">
+        </v-switch>
+      </v-list-item>
     </v-list>
   </v-menu>
 </template>
-  
+
 <script scoped>
 export default {
   name: 'SettingsMenu',
@@ -32,9 +37,10 @@ export default {
 
   props: {
     theme: null,
+    one_page: { type: Boolean, default: false },
   },
 
-  emits: [ 'update:theme' ],
+  emits: [ 'update:theme', 'update:one_page' ],
 
   data() { return {
     settings_menu: false, // whether settings menu is open or not

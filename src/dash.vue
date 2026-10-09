@@ -7,6 +7,7 @@
     <!-- Top title/navigation bar -->
     <app-bar
       v-model:theme="theme"
+      v-model:one_page="one_page"
       :title="title"
       :ready="ready"
       :tab_ix="tab_ix"
@@ -23,7 +24,7 @@
       <!-- "normal" tabs with grids and widgets
            The tab itself doesn't render anything, it's simply a vertical stacking of the
            grids it contains -->
-      <v-window v-if="ready" v-model="tab_ix">
+      <v-window v-if="ready && !one_page" v-model="tab_ix">
         <!-- :class="tabs_items_class"-->
         <v-window-item v-for="(id, ix) in dash_tabs" :key="id" :value="ix">
           <component
@@ -36,8 +37,26 @@
         </v-window-item>
       </v-window>
 
+      <!-- 1-page layout: all tabs stacked on one long scrollable page -->
+      <div v-if="ready && one_page">
+        <div v-for="(id, ix) in dash_tabs" :key="id">
+          <div v-if="ix > 0" class="tab-title-bar py-2 text-h4 text-primary">
+            <v-icon :size="tabs[id].title ? 'default' : 'x-large'" color="primary" class="mr-2"
+                    :icon="tabs[id].icon" />
+            {{ tabs[id].title }}
+          </div>
+          <component
+            v-for="(g, gix) in tabs_grids[id]"
+            :key="g"
+            :id="g"
+            v-bind:is="grids[g].kind in palette.grids ? grids[g].kind : 'div'"
+            @delete="deleteGrid(id, gix)">
+          </component>
+        </div>
+      </div>
+
       <!-- iframe tabs, we have two "slots" where content can persist -->
-      <div v-if="ready" :class="iframe_a_class">
+      <div v-if="ready && !one_page" :class="iframe_a_class">
         <iframe
           v-if="iframe_a_src"
           :src="iframe_a_src"
@@ -45,7 +64,7 @@
           marginheight="0"
           marginwidth="0"></iframe>
       </div>
-      <div v-if="ready" :class="iframe_b_class">
+      <div v-if="ready && !one_page" :class="iframe_b_class">
         <iframe
           v-if="iframe_b_src"
           :src="iframe_b_src"
@@ -116,6 +135,15 @@
 .iframe-tab-wrap.iframe-b--active {
   display: block;
 }
+
+/* divider shown between stacked tabs in 1-page layout */
+.tab-title-bar {
+  width: 100%;
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 </style>
 
 <style>
@@ -173,6 +201,7 @@ export default {
     tab_ix: null, // which tab we're on
     tab_edit: false, // turns tab editing drawer on/off
     tab_add: false, // turns add-a-tab menu on/off
+    one_page: false, // display all tabs stacked on one long page instead of as tabs
 
     iframe_a_src: null, // src URL for iframe
     iframe_b_src: null, // src URL for iframe
