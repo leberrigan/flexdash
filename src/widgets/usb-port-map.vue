@@ -200,6 +200,7 @@ const TYPE_CODES = {
   'airspy':          'AM',
   'airspyhf':        'AHF',
   'CTT/CornellRcvr': 'CTT',
+  'CTTBlu':          'BLU',
   'DigiBabel':       'DB',
   'NanoBabel':       'NB',
   'usbAudio':        'AUD',
@@ -346,6 +347,8 @@ Empty ports are shown as white with a black border.`,
       if (this.isHubPort(portNum)) return '#111827'
       const dev = this.devices[String(portNum)]
       if (!dev) return '#FFFFFF'
+      // Blu occupies the 2.4 GHz band, outside the existing 434 MHz FSK range.
+      if ((dev.type || '').toLowerCase() === 'cttblu') return '#7C3AED'
       const freq = parseFloat(dev.frequency)
       if (!isNaN(freq) && freq > 0) {
         if (freq > 430 && freq < 436) return '#7C3AED'
@@ -371,7 +374,7 @@ Empty ports are shown as white with a black border.`,
     },
 
     typeCode(type) {
-      if (!type) return '???'
+      if (!type || type.toLowerCase().startsWith('identifying receiver')) return '???'
       const base = type.split('/')[0]
       const baseLc = base.toLowerCase()
       return TYPE_CODES[base]
